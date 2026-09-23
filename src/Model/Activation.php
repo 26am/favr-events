@@ -65,6 +65,15 @@ final class Activation {
 
 		$page = (int) Settings::get( 'events_page' );
 		if ( ! $page || ! get_post( $page ) ) {
+			// Many sites already have an Events page: use it (content untouched) rather than
+			// creating /events-2/. Staff then place the Events block or Elementor widget on it.
+			$existing = get_page_by_path( 'events', OBJECT, 'page' );
+			if ( $existing instanceof \WP_Post && 'publish' === $existing->post_status ) {
+				Settings::update( array( 'events_page' => (int) $existing->ID ) );
+				$page = (int) $existing->ID;
+			}
+		}
+		if ( ! $page || ! get_post( $page ) ) {
 			$page = (int) wp_insert_post(
 				array(
 					'post_type'    => 'page',
