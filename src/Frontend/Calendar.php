@@ -11,6 +11,7 @@ namespace FavrEvents\Frontend;
 
 use FavrEvents\Model\Repository;
 use FavrEvents\Schema\Identifiers as ID;
+use FavrEvents\Support\Request;
 use FavrEvents\Support\Settings;
 
 /**
@@ -53,13 +54,13 @@ final class Calendar {
 	 * @param array<string, mixed> $atts Attributes.
 	 */
 	public static function render( array $atts = array() ): string {
-		$atts = self::atts( $atts );
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public, read-only filters.
-		$view  = $atts['filters'] && isset( $_GET[ ID::QV_VIEW ] ) && in_array( $_GET[ ID::QV_VIEW ], array( 'list', 'month' ), true ) ? sanitize_key( wp_unslash( $_GET[ ID::QV_VIEW ] ) ) : $atts['view'];
-		$cat   = $atts['filters'] && isset( $_GET[ ID::QV_CAT ] ) ? sanitize_title( wp_unslash( $_GET[ ID::QV_CAT ] ) ) : (string) $atts['category'];
-		$page  = isset( $_GET[ ID::QV_PAGE ] ) ? max( 1, absint( $_GET[ ID::QV_PAGE ] ) ) : 1;
-		$month = isset( $_GET[ ID::QV_MONTH ] ) ? sanitize_text_field( wp_unslash( $_GET[ ID::QV_MONTH ] ) ) : '';
-		// phpcs:enable
+		$atts     = self::atts( $atts );
+		$req_view = Request::get( ID::QV_VIEW );
+		$req_cat  = Request::get( ID::QV_CAT );
+		$view     = $atts['filters'] && in_array( $req_view, array( 'list', 'month' ), true ) ? $req_view : $atts['view'];
+		$cat      = $atts['filters'] && '' !== $req_cat ? sanitize_title( $req_cat ) : (string) $atts['category'];
+		$page     = min( 20, max( 1, absint( Request::get( ID::QV_PAGE ) ) ) ); // Deep pages are pointless and costly.
+		$month    = sanitize_text_field( Request::get( ID::QV_MONTH ) );
 
 		wp_enqueue_style( 'favr-events' );
 		$args = array(

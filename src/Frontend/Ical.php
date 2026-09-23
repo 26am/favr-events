@@ -12,6 +12,7 @@ namespace FavrEvents\Frontend;
 use FavrEvents\Model\Event;
 use FavrEvents\Model\Repository;
 use FavrEvents\Schema\Identifiers as ID;
+use FavrEvents\Support\Request;
 
 /**
  * Feed: /?favr_events_ical=1 (optionally &category=slug) lists every occurrence from 30 days
@@ -40,56 +41,65 @@ final class Ical {
 
 	/** Serve a feed or a single event file. */
 	public function serve(): void {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public, read-only feeds.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- presence check only.
 		if ( isset( $_GET[ ID::QV_ICAL ] ) ) {
-			$now      = new \DateTimeImmutable( 'now', wp_timezone() );
-			$category = isset( $_GET['category'] ) ? sanitize_title( wp_unslash( $_GET['category'] ) ) : '';
-			$items    = Repository::occurrences(
-				$now->modify( '-30 days' ),
-				$now->modify( '+1 year' ),
-				array(
-					'category' => $category,
-					'limit'    => 500,
-				)
-			);
-			$this->output( $items, sanitize_file_name( get_bloginfo( 'name' ) . '-events' ) . '.ics', false );
+			$category = sanitize_title( Request::get( 'category' ) );
+			// Calendar apps poll feeds: cache the body until posts change (or for an hour).
+			$key  = 'favr_events_ical_' . md5( $category . '|' . wp_cache_get_last_changed( 'posts' ) );
+			$body = get_transient( $key );
+			if ( ! is_string( $body ) ) {
+				$now  = new \DateTimeImmutable( 'now', wp_timezone() );
+				$body = self::calendar(
+					Repository::occurrences(
+						$now->modify( '-30 days' ),
+						$now->modify( '+1 year' ),
+						array(
+							'category' => $category,
+							'limit'    => 500,
+						)
+					)
+				);
+				set_transient( $key, $body, HOUR_IN_SECONDS );
+			}
+			$this->send( $body, sanitize_file_name( get_bloginfo( 'name' ) . '-events' ) . '.ics', false );
 		}
-		if ( is_singular( ID::POST_TYPE ) && isset( $_GET['ics'] ) ) {
-			$event = Event::find( (int) get_queried_object_id() );
-			$day   = sanitize_text_field( wp_unslash( $_GET['ics'] ) );
-			if ( $event && 'publish' === get_post_status( $event->post() ) ) {
-				$items = array();
-				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) {
-					$from  = \DateTimeImmutable::createFromFormat( '!Y-m-d', $day, wp_timezone() );
-					$found = $from ? $event->occurrences( $from, $from->modify( '+1 day' ), 1 ) : array();
-					foreach ( $found as $occurrence ) {
-						$items[] = array( 'event' => $event ) + $occurrence;
-					}
-				}
-				if ( ! $items ) {
-					$next = $event->nextOccurrence();
-					if ( $next ) {
-						$items[] = array( 'event' => $event ) + $next;
-					}
-				}
-				$this->output( $items, sanitize_file_name( $event->post()->post_name ) . '.ics', true );
+		$day = sanitize_text_field( Request::get( 'ics' ) );
+		if ( '' === $day || ! is_singular( ID::POST_TYPE ) ) {
+			return;
+		}
+		$event = Event::find( (int) get_queried_object_id() );
+		if ( ! $event || 'publish' !== get_post_status( $event->post() ) || '' !== $event->post()->post_password ) {
+			return;
+		}
+		$items = array();
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) {
+			$from  = \DateTimeImmutable::createFromFormat( '!Y-m-d', $day, wp_timezone() );
+			$found = $from ? $event->occurrences( $from, $from->modify( '+1 day' ), 1 ) : array();
+			foreach ( $found as $occurrence ) {
+				$items[] = array( 'event' => $event ) + $occurrence;
 			}
 		}
-		// phpcs:enable
+		if ( ! $items ) {
+			$next = $event->nextOccurrence();
+			if ( $next ) {
+				$items[] = array( 'event' => $event ) + $next;
+			}
+		}
+		$this->send( self::calendar( $items ), sanitize_file_name( $event->post()->post_name ) . '.ics', true );
 	}
 
 	/**
-	 * Send the calendar and stop.
+	 * Send a calendar body and stop.
 	 *
-	 * @param list<array{event: Event, start: \DateTimeImmutable, end: \DateTimeImmutable}> $items      Occurrences.
-	 * @param string                                                                        $filename   File name.
-	 * @param bool                                                                          $attachment Download (single) or inline (feed).
+	 * @param string $body       VCALENDAR text.
+	 * @param string $filename   File name.
+	 * @param bool   $attachment Download (single) or inline (feed).
 	 */
-	private function output( array $items, string $filename, bool $attachment ): void {
-		nocache_headers();
+	private function send( string $body, string $filename, bool $attachment ): void {
 		header( 'Content-Type: text/calendar; charset=utf-8' );
+		header( 'Cache-Control: public, max-age=900' );
 		header( 'Content-Disposition: ' . ( $attachment ? 'attachment' : 'inline' ) . '; filename="' . $filename . '"' );
-		echo self::calendar( $items ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- text/calendar, escaped per RFC 5545.
+		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- text/calendar, escaped per RFC 5545.
 		exit;
 	}
 

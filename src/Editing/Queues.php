@@ -14,6 +14,7 @@ use FavrEvents\Model\Event;
 use FavrEvents\Schema\Identifiers as ID;
 use FavrEvents\Vendor\FavrCore\Approvals\Inbox;
 use FavrEvents\Vendor\FavrCore\Moderation\PendingChanges;
+use FavrEvents\Vendor\FavrCore\Moderation\Uploads;
 
 /**
  * Submissions are pending posts: approving publishes them, declining returns them to the
@@ -134,8 +135,8 @@ final class Queues {
 		if ( ! $post || ID::POST_TYPE !== $post->post_type || 'pending' !== $post->post_status ) {
 			return __( 'That event was already handled.', 'favr-events' );
 		}
-		if ( ! current_user_can( 'publish_post', $post_id ) && ! current_user_can( 'edit_post', $post_id ) ) {
-			return __( 'You can’t publish that event.', 'favr-events' );
+		if ( ! current_user_can( 'approve' === $decision ? 'publish_post' : 'edit_post', $post_id ) ) {
+			return __( 'You don’t have permission to do that for this event.', 'favr-events' );
 		}
 		if ( self::fingerprint( $post ) !== $version ) {
 			return __( 'That event was edited while you were reviewing it, so nothing changed. Please look again.', 'favr-events' );
@@ -143,6 +144,7 @@ final class Queues {
 		$author = (int) $post->post_author;
 		if ( 'approve' === $decision ) {
 			delete_post_meta( $post_id, self::DECLINED );
+			Uploads::publish( array( (int) get_post_thumbnail_id( $post_id ) ), $post_id );
 			wp_update_post(
 				array(
 					'ID'          => $post_id,

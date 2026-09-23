@@ -25,6 +25,7 @@ final class Registrar {
 		add_action( 'init', array( $this, 'registerTaxonomy' ), 7 );
 		add_action( 'init', array( $this, 'registerMeta' ), 8 );
 		add_action( 'save_post_' . ID::POST_TYPE, array( $this, 'reindex' ), 99 );
+		add_filter( 'rest_prepare_' . ID::POST_TYPE, array( $this, 'protectRest' ), 10, 2 );
 	}
 
 	/** The event post type. */
@@ -126,6 +127,22 @@ final class Registrar {
 				)
 			);
 		}
+	}
+
+	/**
+	 * No event details over REST for password-protected events the reader hasn't unlocked.
+	 *
+	 * @param \WP_REST_Response $response Response.
+	 * @param \WP_Post          $post     Post.
+	 * @return \WP_REST_Response
+	 */
+	public function protectRest( $response, $post ) {
+		if ( $response instanceof \WP_REST_Response && $post instanceof \WP_Post && '' !== $post->post_password && ! current_user_can( 'edit_post', $post->ID ) ) {
+			$data = $response->get_data();
+			unset( $data['meta'] );
+			$response->set_data( $data );
+		}
+		return $response;
 	}
 
 	/**

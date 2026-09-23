@@ -76,4 +76,21 @@ final class OccurrencesTest extends Base {
 		$o = Occurrences::between( $this->d( '2026-01-01 09:00' ), $this->d( '2026-01-01 10:00' ), 'weekly', 1, null, $this->d( '2026-01-01' ), $this->d( '2030-01-01' ), 5 );
 		$this->assertCount( 5, $o );
 	}
+
+	public function test_old_repeating_events_still_produce_occurrences(): void {
+		$o = Occurrences::between( $this->d( '2012-01-06 07:30' ), $this->d( '2012-01-06 08:30' ), 'weekly', 1, null, $this->d( '2026-10-01' ), $this->d( '2026-10-15' ) );
+		$this->assertSame( array( '2026-10-02 07:30', '2026-10-09 07:30' ), $this->starts( $o ) );
+
+		$o = Occurrences::between( $this->d( '2010-03-09 12:00' ), $this->d( '2010-03-09 13:00' ), 'monthly_nth', 1, null, $this->d( '2026-10-01' ), $this->d( '2026-11-01' ) );
+		$this->assertSame( array( '2026-10-13 12:00' ), $this->starts( $o ), 'second Tuesday, 16 years on' );
+
+		$last = Occurrences::lastStart( $this->d( '2012-01-06 07:30' ), 'weekly', 2, $this->d( '2026-10-10' ) );
+		$this->assertSame( '2026-10-09', $last ? $last->format( 'Y-m-d' ) : '' ); // 5,390 days = 385 fortnights.
+	}
+
+	public function test_long_event_overlapping_window_start_after_skip(): void {
+		// Three-day event every week; the one starting Sunday Sep 27 overlaps Oct 1.
+		$o = Occurrences::between( $this->d( '2020-01-05 09:00' ), $this->d( '2020-01-08 09:00' ), 'weekly', 1, null, $this->d( '2026-09-29' ), $this->d( '2026-10-05' ) );
+		$this->assertSame( '2026-09-27 09:00', $o[0]['start']->format( 'Y-m-d H:i' ) );
+	}
 }

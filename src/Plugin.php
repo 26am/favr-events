@@ -41,6 +41,17 @@ final class Plugin {
 		( new Editing\Submissions() )->hook();
 		( new Editing\UploadRoute() )->hook();
 		( new Editing\Queues() )->hook();
+		if ( ! has_action( 'favr_core_uploads_cleanup' ) ) {
+			add_action( 'favr_core_uploads_cleanup', array( Vendor\FavrCore\Moderation\Uploads::class, 'cleanup' ) );
+		}
+		add_action(
+			'init',
+			static function (): void {
+				if ( ! wp_next_scheduled( 'favr_core_uploads_cleanup' ) ) {
+					wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'favr_core_uploads_cleanup' );
+				}
+			}
+		);
 
 		if ( is_admin() ) {
 			( new Admin\Assets() )->hook();

@@ -76,7 +76,12 @@ final class Submissions {
 	 */
 	public static function canEdit( int $user_id, int $post_id ): bool {
 		$post = get_post( $post_id );
-		return $post && ID::POST_TYPE === $post->post_type && (int) $post->post_author === $user_id && in_array( $post->post_status, self::EDITABLE, true ) && self::canSubmit( $user_id );
+		if ( ! $post || ID::POST_TYPE !== $post->post_type || (int) $post->post_author !== $user_id || ! in_array( $post->post_status, self::EDITABLE, true ) || ! self::canSubmit( $user_id ) ) {
+			return false;
+		}
+		// A draft is only theirs to edit when staff declined it (to fix and resubmit); events
+		// staff moved to draft themselves stay with staff.
+		return 'draft' !== $post->post_status || (bool) get_post_meta( $post_id, Queues::DECLINED, true );
 	}
 
 	/**
@@ -107,7 +112,7 @@ final class Submissions {
 		if ( $user_id <= 0 ) {
 			return array();
 		}
-		return get_posts(
+		$posts = get_posts(
 			array(
 				'post_type'      => ID::POST_TYPE,
 				'post_status'    => self::EDITABLE,
@@ -117,6 +122,7 @@ final class Submissions {
 				'order'          => 'DESC',
 			)
 		);
+		return array_values( array_filter( $posts, static fn( \WP_Post $p ): bool => 'draft' !== $p->post_status || (bool) get_post_meta( $p->ID, Queues::DECLINED, true ) ) );
 	}
 
 	/** Render the list or the form. */
@@ -204,7 +210,7 @@ final class Submissions {
 		$post_id   = $post ? $post->ID : 0;
 		$published = $post && in_array( $post->post_status, array( 'publish', 'future' ), true );
 		$pending   = $post_id ? PendingChanges::get( $post_id ) : array();
-		$items     = Items::forUser( $user_id );
+		$items     = Items::forUser( $user_id, $published );
 		$back      = remove_query_arg( array( self::QV_EDIT, self::QV_MSG ), $here );
 
 		printf( '<p><a href="%1$s">← %2$s</a></p>', esc_url( $back ), esc_html__( 'My events', 'favr-events' ) );
@@ -357,9 +363,10 @@ final class Submissions {
 	 * @return array{code: string, post_id: int, invalid: list<string>}
 	 */
 	public static function save( int $post_id, int $user_id, array $input ): array {
-		$items   = Items::forUser( $user_id );
-		$values  = array();
-		$invalid = array();
+		$existing = $post_id ? get_post( $post_id ) : null;
+		$items    = Items::forUser( $user_id, $existing && in_array( $existing->post_status, array( 'publish', 'future' ), true ) );
+		$values   = array();
+		$invalid  = array();
 		foreach ( $items as $id => $item ) {
 			$raw   = $input[ $id ] ?? null;
 			$value = Items::sanitize( $id, $raw, $user_id );
@@ -412,6 +419,28 @@ final class Submissions {
 					)
 				);
 			}
+			Event::reindex( $post_id );
+			PendingChanges::log( $post_id, 'submitted', array_keys( $values ), $user_id );
+			Notifier::submitted( $post_id, $user_id );
+			return array(
+				'code'    => 'submitted',
+				'post_id' => $post_id,
+				'invalid' => $invalid,
+			);
+		}
+
+		if ( 'draft' === $post->post_status ) {
+			// Fixing a declined event sends it back for review.
+			foreach ( $values as $id => $value ) {
+				Items::apply( $post_id, $id, $value );
+			}
+			delete_post_meta( $post_id, Queues::DECLINED );
+			wp_update_post(
+				array(
+					'ID'          => $post_id,
+					'post_status' => 'pending',
+				)
+			);
 			Event::reindex( $post_id );
 			PendingChanges::log( $post_id, 'submitted', array_keys( $values ), $user_id );
 			Notifier::submitted( $post_id, $user_id );

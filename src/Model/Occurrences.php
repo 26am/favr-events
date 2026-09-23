@@ -46,7 +46,9 @@ final class Occurrences {
 		$out      = array();
 		$last_day = $until ? $until->setTime( 23, 59, 59 ) : null;
 
-		foreach ( self::starts( $start, $rule, $interval ) as $i => $occurrence ) {
+		// Jump close to the window instead of walking from the first start (old weekly events).
+		$near = $from->modify( '-' . $duration . ' seconds' );
+		foreach ( self::starts( $start, $rule, $interval, $near ) as $i => $occurrence ) {
 			if ( $i >= self::MAX || count( $out ) >= $limit || $occurrence >= $to || ( $last_day && $occurrence > $last_day ) ) {
 				break;
 			}
@@ -78,7 +80,7 @@ final class Occurrences {
 		}
 		$last     = $start;
 		$last_day = $until->setTime( 23, 59, 59 );
-		foreach ( self::starts( $start, $rule, max( 1, $interval ) ) as $i => $occurrence ) {
+		foreach ( self::starts( $start, $rule, max( 1, $interval ), $until ) as $i => $occurrence ) {
 			if ( $i >= self::MAX || $occurrence > $last_day ) {
 				break;
 			}
@@ -88,20 +90,25 @@ final class Occurrences {
 	}
 
 	/**
-	 * Candidate starts, in order.
+	 * Candidate starts, in order, beginning a period or so before $near.
 	 *
-	 * @param \DateTimeImmutable $start    First start.
-	 * @param string             $rule     Rule.
-	 * @param int                $interval Interval.
+	 * @param \DateTimeImmutable      $start    First start.
+	 * @param string                  $rule     Rule.
+	 * @param int                     $interval Interval.
+	 * @param \DateTimeImmutable|null $near     Skip ahead to just before this moment.
 	 * @return \Generator<int, \DateTimeImmutable>
 	 */
-	private static function starts( \DateTimeImmutable $start, string $rule, int $interval ): \Generator {
-		yield $start;
-		if ( 'none' === $rule || ! in_array( $rule, self::RULES, true ) ) {
+	private static function starts( \DateTimeImmutable $start, string $rule, int $interval, ?\DateTimeImmutable $near = null ): \Generator {
+		$repeats = 'none' !== $rule && in_array( $rule, self::RULES, true );
+		$skip    = $repeats && $near ? self::periodsBefore( $start, $rule, $interval, $near ) : 0;
+		if ( 0 === $skip ) {
+			yield $start;
+		}
+		if ( ! $repeats ) {
 			return;
 		}
 		$time = array( (int) $start->format( 'G' ), (int) $start->format( 'i' ), (int) $start->format( 's' ) );
-		for ( $n = 1; $n <= self::MAX * 2; $n++ ) {
+		for ( $n = max( 1, $skip ); $n <= $skip + self::MAX * 2; $n++ ) {
 			if ( 'weekly' === $rule ) {
 				yield $start->modify( '+' . ( $n * $interval * 7 ) . ' days' );
 				continue;
@@ -119,6 +126,27 @@ final class Occurrences {
 				yield $candidate->setTime( ...$time );
 			}
 		}
+	}
+
+	/**
+	 * Whole periods between the first start and $near, minus one for safety (0 when $near is
+	 * earlier). Pure arithmetic, so a ten-year-old weekly event costs the same as a new one.
+	 *
+	 * @param \DateTimeImmutable $start    First start.
+	 * @param string             $rule     Rule.
+	 * @param int                $interval Interval.
+	 * @param \DateTimeImmutable $near     Target.
+	 */
+	private static function periodsBefore( \DateTimeImmutable $start, string $rule, int $interval, \DateTimeImmutable $near ): int {
+		if ( $near <= $start ) {
+			return 0;
+		}
+		if ( 'weekly' === $rule ) {
+			$days = intdiv( $near->getTimestamp() - $start->getTimestamp(), 86400 );
+			return max( 0, intdiv( $days, 7 * $interval ) - 1 );
+		}
+		$months = ( (int) $near->format( 'Y' ) - (int) $start->format( 'Y' ) ) * 12 + ( (int) $near->format( 'n' ) - (int) $start->format( 'n' ) );
+		return max( 0, intdiv( $months, $interval ) - 1 );
 	}
 
 	/**

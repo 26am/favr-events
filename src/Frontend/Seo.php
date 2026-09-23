@@ -119,7 +119,7 @@ final class Seo {
 			return array();
 		}
 		$event = Event::find( (int) get_queried_object_id() );
-		if ( ! $event || 'publish' !== get_post_status( $event->post() ) ) {
+		if ( ! $event || 'publish' !== get_post_status( $event->post() ) || '' !== $event->post()->post_password ) {
 			return array();
 		}
 		$occurrence = Single::occurrence( $event );

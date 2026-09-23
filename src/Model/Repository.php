@@ -30,6 +30,7 @@ final class Repository {
 		$query = array(
 			'post_type'        => ID::POST_TYPE,
 			'post_status'      => 'publish',
+			'has_password'     => false, // Protected events never appear in lists, calendars or feeds.
 			'posts_per_page'   => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- bounded, indexed.
 			'no_found_rows'    => true,
 			'suppress_filters' => false,

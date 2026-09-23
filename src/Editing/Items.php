@@ -15,6 +15,7 @@ use FavrEvents\Model\Hosts;
 use FavrEvents\Schema\Identifiers as ID;
 use FavrEvents\Vendor\FavrCore\Fields\FieldSet;
 use FavrEvents\Vendor\FavrCore\Fields\Sanitizer;
+use FavrEvents\Vendor\FavrCore\Moderation\Uploads;
 
 /**
  * Items are the event fields plus four stored on the post: title, description, categories
@@ -103,12 +104,16 @@ final class Items {
 	/**
 	 * Items a submitter sees (with categories and host adapted for them).
 	 *
-	 * @param int $user_id Submitter.
+	 * @param int  $user_id   Submitter.
+	 * @param bool $published The event is live (so `none` items are hidden).
 	 * @return array<string, array<string, mixed>>
 	 */
-	public static function forUser( int $user_id ): array {
+	public static function forUser( int $user_id, bool $published = false ): array {
 		$items = array();
 		foreach ( self::core() as $id => $item ) {
+			if ( $published && 'title' !== $id && self::NONE === self::access( $id ) ) {
+				continue;
+			}
 			if ( 'categories' === $id ) {
 				$terms = get_terms(
 					array(
@@ -255,6 +260,10 @@ final class Items {
 				wp_set_object_terms( $post_id, array_map( 'intval', (array) $value ), ID::TAX_CATEGORY );
 				return;
 			case 'image':
+				// Submitter uploads stay private until the event is live (see Queues on approval).
+				if ( (int) $value > 0 && in_array( get_post_status( $post_id ), array( 'publish', 'future' ), true ) ) {
+					Uploads::publish( array( (int) $value ), $post_id );
+				}
 				if ( (int) $value > 0 ) {
 					set_post_thumbnail( $post_id, (int) $value );
 				} else {

@@ -11,6 +11,7 @@ namespace FavrEvents\Frontend;
 
 use FavrEvents\Model\Event;
 use FavrEvents\Schema\Identifiers as ID;
+use FavrEvents\Support\Request;
 
 /**
  * Works with any theme: the theme renders the title and image as usual, and the details
@@ -30,8 +31,7 @@ final class Single {
 	 * @return array{start: \DateTimeImmutable, end: \DateTimeImmutable}|null
 	 */
 	public static function occurrence( Event $event ): ?array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only.
-		$day = isset( $_GET['occurrence'] ) ? sanitize_text_field( wp_unslash( $_GET['occurrence'] ) ) : '';
+		$day = sanitize_text_field( Request::get( 'occurrence' ) );
 		if ( $event->repeats() && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) {
 			$from = \DateTimeImmutable::createFromFormat( '!Y-m-d', $day, wp_timezone() );
 			if ( $from ) {
@@ -54,8 +54,8 @@ final class Single {
 			return $content;
 		}
 		$event = Event::find( (int) get_the_ID() );
-		if ( ! $event ) {
-			return $content;
+		if ( ! $event || post_password_required( $event->post() ) ) {
+			return $content; // Nothing about a protected event (times, place, online link) before the password.
 		}
 		wp_enqueue_style( 'favr-events' );
 		$occurrence = self::occurrence( $event );
