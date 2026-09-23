@@ -1,0 +1,26 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "favr-events/events",
+	"title": "Events",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Upcoming events as a list, a month calendar, or a compact list for sidebars and home pages.",
+	"keywords": [ "events", "calendar", "chamber" ],
+	"textdomain": "favr-events",
+	"attributes": {
+		"view": { "type": "string", "default": "" },
+		"category": { "type": "string", "default": "" },
+		"limit": { "type": "number", "default": 0 },
+		"featuredOnly": { "type": "boolean", "default": false },
+		"showFilters": { "type": "boolean", "default": true },
+		"title": { "type": "string", "default": "" }
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"spacing": { "margin": true, "padding": true }
+	},
+	"editorScript": "favr-events-blocks",
+	"style": "favr-events"
+}

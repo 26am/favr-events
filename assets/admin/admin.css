@@ -1,0 +1,9 @@
+/* Favr Events — admin extras on top of favr-core's field UI. */
+.favr-event-next { margin: 12px 0 0; color: #646970; }
+.column-favr_when { width: 22%; }
+.column-favr_host { width: 18%; }
+.favr-muted { color: #8c8f94; }
+.column-favr_when .dashicons { font-size: 16px; width: 16px; height: 16px; vertical-align: -3px; color: #8c8f94; }
+.column-favr_when .dashicons-star-filled { color: #dba617; }
+.favr-settings .favr-card { max-width: 900px; background: #fff; border: 1px solid #c3c4c7; padding: 4px 20px 16px; margin: 20px 0; }
+.favr-help li { margin-bottom: 8px; }
