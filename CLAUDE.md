@@ -33,4 +33,8 @@ Local test site: `http://sermonator-test.local/`, with this repo symlinked to
 - **Optional integrations** go through WordPress filters only: Favr Members
   (`favr_members_is_active`, `favr_members_dashboard_tabs`) and Favr Directory
   (`favr_directory_listings_for_user`, `favr_directory_after_profile`, `favr_directory_login_url`).
+- **Page builders** (ADR 0002 in Favr Directory): one renderer per feature; the shortcode, block
+  and Elementor widget (`Integration\Elementor\*`, base class in favr/core) are thin adapters.
+  Builder data (Elementor dynamic tags, block bindings) comes only from `Integration\FieldValues`.
+  Never reference Elementor classes outside callbacks of Elementor's own hooks.
 - **Shared code:** import from `FavrEvents\Vendor\FavrCore\…`. Never edit `vendor-prefixed/`.
