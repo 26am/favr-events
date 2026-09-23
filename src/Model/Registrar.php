@@ -73,7 +73,7 @@ final class Registrar {
 			ID::TAX_CATEGORY,
 			array( ID::POST_TYPE ),
 			array(
-				'labels'            => array(
+				'labels'             => array(
 					'name'          => __( 'Event Categories', 'favr-events' ),
 					'singular_name' => __( 'Event Category', 'favr-events' ),
 					'menu_name'     => __( 'Categories', 'favr-events' ),
@@ -81,15 +81,17 @@ final class Registrar {
 					'edit_item'     => __( 'Edit Category', 'favr-events' ),
 					'add_new_item'  => __( 'Add New Category', 'favr-events' ),
 				),
-				'hierarchical'      => true,
-				'public'            => true,
-				'show_admin_column' => true,
-				'show_in_rest'      => true,
-				'rewrite'           => array(
-					'slug'       => 'event-category',
-					'with_front' => false,
-				),
-				'capabilities'      => array(
+				'hierarchical'       => true,
+				// No archive pages: a theme's generic archive would list events without dates.
+				// Categories filter the Events page (?fe_cat=) instead, so nothing thin reaches
+				// search engines or the sitemap.
+				'public'             => false,
+				'publicly_queryable' => false,
+				'show_ui'            => true,
+				'show_admin_column'  => true,
+				'show_in_rest'       => true,
+				'rewrite'            => false,
+				'capabilities'       => array(
 					'manage_terms' => 'edit_others_' . ID::CAP_PLURAL,
 					'edit_terms'   => 'edit_others_' . ID::CAP_PLURAL,
 					'delete_terms' => 'edit_others_' . ID::CAP_PLURAL,

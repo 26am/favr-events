@@ -115,6 +115,10 @@ final class Seo {
 	 * @return list<array<string, mixed>>
 	 */
 	public static function graph( bool $with_breadcrumbs ): array {
+		if ( self::isEventsPage() ) {
+			$list = self::itemList();
+			return $list ? array( $list ) : array();
+		}
 		if ( ! is_singular( ID::POST_TYPE ) ) {
 			return array();
 		}
@@ -141,6 +145,47 @@ final class Seo {
 			);
 		}
 		return $graph;
+	}
+
+	/** Whether this is the configured Events page (unfiltered). */
+	private static function isEventsPage(): bool {
+		$page = (int) Settings::get( 'events_page' );
+		return $page > 0 && is_page( $page );
+	}
+
+	/**
+	 * ItemList of upcoming events for the Events page (each item points at the event page).
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public static function itemList(): ?array {
+		$items = array();
+		$seen  = array();
+		foreach ( \FavrEvents\Model\Repository::upcoming( 30 ) as $item ) {
+			$id = $item['event']->id();
+			if ( isset( $seen[ $id ] ) ) {
+				continue; // A repeating event appears once.
+			}
+			$seen[ $id ] = true;
+			$items[]     = array(
+				'@type'    => 'ListItem',
+				'position' => count( $items ) + 1,
+				'url'      => (string) get_permalink( $item['event']->post() ),
+				'name'     => wp_specialchars_decode( $item['event']->title(), ENT_QUOTES ),
+			);
+			if ( count( $items ) >= 20 ) {
+				break;
+			}
+		}
+		if ( ! $items ) {
+			return null;
+		}
+		return array(
+			'@type'           => 'ItemList',
+			'@id'             => (string) get_permalink( (int) Settings::get( 'events_page' ) ) . '#events',
+			'name'            => __( 'Upcoming events', 'favr-events' ),
+			'itemListElement' => $items,
+		);
 	}
 
 	/**
