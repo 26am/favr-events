@@ -7,7 +7,7 @@
 .favr-ev-host,
 .favr-ev-back,
 .favr-my-events {
-	--favr-ev-accent: var(--wp--preset--color--primary, #1f5fbf);
+	--favr-ev-accent: var(--favr-brand, var(--favr-events-accent, var(--wp--preset--color--primary, #1f5fbf)));
 	--favr-ev-border: color-mix(in srgb, currentColor 14%, transparent);
 	--favr-ev-soft: color-mix(in srgb, currentColor 4%, transparent);
 	--favr-ev-muted: color-mix(in srgb, currentColor 62%, transparent);

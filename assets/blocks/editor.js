@@ -57,4 +57,21 @@
 			return null;
 		}
 	} );
+
+	wp.blocks.registerBlockType( 'favr-events/my-events', {
+		edit: function () {
+			return el(
+				'div',
+				useBlockProps(),
+				el( C.Placeholder, {
+					icon: 'calendar',
+					label: __( 'My Events', 'favr-events' ),
+					instructions: __( 'Members submit events for approval and manage their submissions here. Others see a login prompt. It’s also a tab in the Favr Members dashboard.', 'favr-events' )
+				} )
+			);
+		},
+		save: function () {
+			return null;
+		}
+	} );
 } )( window.wp );

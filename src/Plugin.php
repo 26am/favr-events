@@ -37,6 +37,8 @@ final class Plugin {
 		( new Frontend\Ical() )->hook();
 		( new Frontend\Seo() )->hook();
 		( new Integration\Directory() )->hook();
+		( new Integration\Elementor() )->hook();
+		( new Integration\BlockBindings() )->hook();
 
 		( new Editing\Submissions() )->hook();
 		( new Editing\UploadRoute() )->hook();

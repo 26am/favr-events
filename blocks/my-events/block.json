@@ -1,0 +1,17 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "favr-events/my-events",
+	"title": "My Events (submit & manage)",
+	"category": "widgets",
+	"icon": "calendar",
+	"description": "Lets members submit events for approval and manage the events they submitted.",
+	"keywords": [ "events", "submit", "member", "favr" ],
+	"textdomain": "favr-events",
+	"supports": {
+		"html": false,
+		"multiple": false,
+		"align": [ "wide" ]
+	},
+	"editorScript": "favr-events-blocks"
+}

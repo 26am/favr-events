@@ -4,7 +4,7 @@
     'name' => 'favr/favr-events',
     'pretty_version' => 'dev-main',
     'version' => 'dev-main',
-    'reference' => '2945ae71e483b00185148c0034fc9855ed850719',
+    'reference' => 'c3bb3b9b2a399fd2b1ccd1c8efe06aafd39dc1b2',
     'type' => 'wordpress-plugin',
     'install_path' => __DIR__ . '/../',
     'aliases' => 
@@ -16,9 +16,9 @@
   array (
     'favr/core' => 
     array (
-      'pretty_version' => 'v0.3.0',
-      'version' => '0.3.0.0',
-      'reference' => '25e7ef69c6ea859ce4bc14f97d44596453efa788',
+      'pretty_version' => 'v0.4.1',
+      'version' => '0.4.1.0',
+      'reference' => '09ab8893bc3849498ef120d512bc3c4d66de94f2',
       'type' => 'library',
       'install_path' => __DIR__ . '/../favr/core',
       'aliases' => 

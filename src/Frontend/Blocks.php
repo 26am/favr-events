@@ -29,7 +29,8 @@ final class Blocks {
 		wp_register_style( 'favr-events', FAVR_EVENTS_URL . 'assets/public/events.css', array(), AssetVersion::of( 'assets/public/events.css' ) );
 		$accent = sanitize_hex_color( (string) \FavrEvents\Support\Settings::get( 'accent_color' ) );
 		if ( $accent ) {
-			wp_add_inline_style( 'favr-events', '.favr-ev,.favr-ev-details,.favr-ev-host,.favr-ev-more{--favr-ev-accent:' . $accent . '}' );
+			// A root variable, so a per-widget --favr-brand (Elementor) can still override it.
+			wp_add_inline_style( 'favr-events', ':root{--favr-events-accent:' . $accent . '}' );
 		}
 		wp_register_script(
 			'favr-events-blocks',
@@ -40,6 +41,10 @@ final class Blocks {
 		);
 		wp_set_script_translations( 'favr-events-blocks', 'favr-events', FAVR_EVENTS_PATH . 'languages' );
 		register_block_type( FAVR_EVENTS_PATH . 'blocks/events', array( 'render_callback' => array( $this, 'renderEvents' ) ) );
+		register_block_type(
+			FAVR_EVENTS_PATH . 'blocks/my-events',
+			array( 'render_callback' => static fn(): string => sprintf( '<div %s>%s</div>', get_block_wrapper_attributes(), \FavrEvents\Editing\Submissions::render() ) )
+		);
 	}
 
 	/**

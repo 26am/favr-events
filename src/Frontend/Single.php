@@ -57,6 +57,16 @@ final class Single {
 		if ( ! $event || post_password_required( $event->post() ) ) {
 			return $content; // Nothing about a protected event (times, place, online link) before the password.
 		}
+
+		/**
+		 * Whether to add the details panel (when, where, register…) around the description.
+		 *
+		 * @param bool  $show  Default true.
+		 * @param Event $event Event.
+		 */
+		if ( ! apply_filters( 'favr_events_show_details', true, $event ) ) {
+			return $content;
+		}
 		wp_enqueue_style( 'favr-events' );
 		$occurrence = self::occurrence( $event );
 		$details    = View::render(
