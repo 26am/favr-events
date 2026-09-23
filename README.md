@@ -42,6 +42,21 @@ Events and a community calendar for **Chambers of Commerce** and **associations*
 - *Hosted by* a directory business shows its card on the event, and the business profile lists
   its upcoming events.
 
+## Page builders
+
+| Feature | Block | Elementor widget | Shortcode |
+| --- | --- | --- | --- |
+| Events (list, month, compact) | Events | Events | `[favr_events]` |
+| Member submissions | My Events | My Events | `[favr_my_events]` |
+
+- **Elementor Pro Theme Builder:** dynamic tags under *Favr Events*: Event Field (date and time,
+  date, time, repeats, where, venue, address, cost, host, categories…) and Event Link (register,
+  join online, map, Google Calendar, .ics, host business, event page). If your single-event
+  template shows these itself, turn off the automatic details panel with
+  `add_filter( 'favr_events_show_details', '__return_false' );`.
+- **Block themes:** bind core blocks with the `favr-events/event` source (same keys).
+- Each widget has an **Accent color**.
+
 ## Developers
 
 ```bash
