@@ -3,7 +3,7 @@
  * Plugin Name:       Favr Events
  * Plugin URI:        https://github.com/26am/favr-events
  * Description:       Events and a community calendar for Chambers of Commerce and associations, with member-submitted events, iCal feeds and event structured data. Part of Favr Sites.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.7
  * Requires PHP:      8.1
  * Author:            Favr Sites
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FAVR_EVENTS_VERSION', '1.0.0' );
+define( 'FAVR_EVENTS_VERSION', '1.1.0' );
 define( 'FAVR_EVENTS_FILE', __FILE__ );
 define( 'FAVR_EVENTS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FAVR_EVENTS_URL', plugin_dir_url( __FILE__ ) );

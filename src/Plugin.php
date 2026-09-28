@@ -39,6 +39,7 @@ final class Plugin {
 		( new Integration\Directory() )->hook();
 		( new Integration\Elementor() )->hook();
 		( new Integration\BlockBindings() )->hook();
+		( new Integration\FavrSites() )->hook();
 
 		( new Editing\Submissions() )->hook();
 		( new Editing\UploadRoute() )->hook();

@@ -4,7 +4,7 @@ Tags: events, calendar, chamber of commerce, association, ical
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,9 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 * Works with Favr Directory (host businesses) and Favr Members (member submissions).
 
 == Changelog ==
+
+= 1.1.0 =
+* Events card (dates in the next 30 days) and "Add event" button on the Favr dashboard (Favr Sites plugin).
 
 = 1.0.0 =
 * First release.
