@@ -76,7 +76,8 @@ final class FavrSites {
 			'items'      => array_map(
 				static fn( array $row ): array => array(
 					'title' => $row['event']->title(),
-					'meta'  => wp_date( 'D j M', $row['start']->getTimestamp() ),
+					// Month before day, like the other dashboard cards ("Fri, Oct 16").
+					'meta'  => wp_date( 'D, M j', $row['start']->getTimestamp() ),
 					'url'   => (string) get_edit_post_link( $row['event']->id(), 'raw' ),
 				),
 				array_slice( $upcoming, 0, 3 )
