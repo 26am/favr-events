@@ -244,4 +244,60 @@ final class ListScreenTest extends TestCase {
 		$this->assertStringContainsString( 'CAST( favr_ev_first.meta_value AS SIGNED ) DESC', $clauses['orderby'] );
 		$this->assertStringStartsWith( ' LEFT JOIN wp_postmeta AS favr_ev_first', $clauses['join'] );
 	}
+
+	// ---------- Soonest first, by the date the list shows ----------
+
+	/**
+	 * A weekly event that began last week is indexed by its first date, so it sat above events
+	 * on Oct 13 and Oct 15 while its own When cell read Oct 16.
+	 */
+	public function test_a_repeating_event_is_placed_by_its_next_date_not_its_first(): void {
+		$now  = 1791709469; // Oct 11, 2026.
+		$day  = 86400;
+		$rows = ListScreen::soonestFirst(
+			array( 'weekly', 'oct13', 'oct15', 'oct20' ),
+			array(
+				'weekly' => array( $now + 5 * $day, $now + 5 * $day + 3600 ),
+				'oct13'  => array( $now + 2 * $day, $now + 2 * $day + 3600 ),
+				'oct15'  => array( $now + 4 * $day, $now + 4 * $day + 3600 ),
+				'oct20'  => array( $now + 9 * $day, $now + 9 * $day + 3600 ),
+			),
+			$now
+		);
+
+		$this->assertSame( array( 'oct13', 'oct15', 'weekly', 'oct20' ), $rows );
+	}
+
+	public function test_events_without_a_date_stay_first_and_past_events_stay_last_in_their_order(): void {
+		$now  = 1791709469;
+		$day  = 86400;
+		$rows = ListScreen::soonestFirst(
+			array( 'no-date', 'later', 'sooner', 'last-month', 'last-year' ),
+			array(
+				'no-date'    => null,
+				'later'      => array( $now + 9 * $day, $now + 9 * $day + 3600 ),
+				'sooner'     => array( $now + 2 * $day, $now + 2 * $day + 3600 ),
+				'last-month' => array( $now - 30 * $day, $now - 30 * $day + 3600 ),
+				'last-year'  => array( $now - 365 * $day, $now - 365 * $day + 3600 ),
+			),
+			$now
+		);
+
+		$this->assertSame( array( 'no-date', 'sooner', 'later', 'last-month', 'last-year' ), $rows );
+	}
+
+	public function test_an_event_going_on_now_counts_as_upcoming_and_two_at_the_same_time_keep_their_order(): void {
+		$now  = 1791709469;
+		$rows = ListScreen::soonestFirst(
+			array( 'b', 'a', 'running' ),
+			array(
+				'b'       => array( $now + 7200, $now + 10800 ),
+				'a'       => array( $now + 7200, $now + 10800 ),
+				'running' => array( $now - 1800, $now + 1800 ),
+			),
+			$now
+		);
+
+		$this->assertSame( array( 'running', 'b', 'a' ), $rows );
+	}
 }

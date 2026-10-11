@@ -21,6 +21,9 @@ final class ListScreen {
 	/** Query flag set on the list's own query: sort by event date, NEXT, ASC or DESC. */
 	private const BY_DATE = 'favr_events_by_date';
 
+	/** Query var: the rows are shown soonest first (nobody clicked a column heading). */
+	private const SOONEST = 'favr_events_soonest';
+
 	/** Hook. */
 	public function hook(): void {
 		add_filter( 'manage_' . ID::POST_TYPE . '_posts_columns', array( $this, 'columns' ) );
@@ -28,6 +31,7 @@ final class ListScreen {
 		add_filter( 'manage_edit-' . ID::POST_TYPE . '_sortable_columns', array( $this, 'sortable' ) );
 		add_action( 'pre_get_posts', array( $this, 'query' ) );
 		add_filter( 'posts_clauses', array( $this, 'clauses' ), 10, 2 );
+		add_filter( 'the_posts', array( $this, 'soonest' ), 10, 2 );
 		add_filter( 'views_edit-' . ID::POST_TYPE, array( $this, 'views' ) );
 		add_filter( 'bulk_post_updated_messages', array( $this, 'bulkMessages' ), 10, 2 );
 	}
@@ -150,6 +154,9 @@ final class ListScreen {
 		if ( '' !== $direction ) {
 			$query->set( self::BY_DATE, $direction );
 		}
+		if ( 'NEXT' === $direction || ( 'upcoming' === $when && '' === (string) $query->get( 'orderby' ) ) ) {
+			$query->set( self::SOONEST, 1 );
+		}
 		if ( in_array( $when, array( 'upcoming', 'past' ), true ) ) {
 			$query->set( 'meta_query', array( self::whenQuery( $when ) ) );
 			if ( 'past' === $when ) {
@@ -226,6 +233,63 @@ final class ListScreen {
 		$clauses['join']   .= " LEFT JOIN {$postmeta} AS favr_ev_last ON ( favr_ev_last.post_id = {$posts}.ID AND favr_ev_last.meta_key = '" . ID::META_LAST . "' )";
 		$clauses['orderby'] = "( favr_ev_first.meta_value IS NULL ) DESC, ( {$over} ) ASC, CASE WHEN {$over} THEN -{$first} ELSE {$first} END ASC, {$posts}.ID DESC";
 		return $clauses;
+	}
+
+	/**
+	 * The page of events as the list shows it when it is "soonest first": the query sorts by each
+	 * event's first date (the index), but a repeating event shows its next date, so the upcoming
+	 * rows of the page are put in the order of the dates their When cells print.
+	 *
+	 * @param mixed     $posts The page of events.
+	 * @param \WP_Query $query Query.
+	 * @return mixed
+	 */
+	public function soonest( $posts, $query ) {
+		if ( ! is_array( $posts ) || count( $posts ) < 2 || ! $query instanceof \WP_Query || ! $query->get( self::SOONEST ) || ! $query->is_main_query() ) {
+			return $posts;
+		}
+		$by_id = array();
+		$next  = array();
+		foreach ( $posts as $post ) {
+			$id           = (int) ( $post->ID ?? 0 );
+			$event        = Event::find( $id );
+			$occurrence   = $event ? $event->nextOccurrence() : null;
+			$by_id[ $id ] = $post;
+			$next[ $id ]  = $occurrence ? array( $occurrence['start']->getTimestamp(), $occurrence['end']->getTimestamp() ) : null;
+		}
+		if ( count( $by_id ) !== count( $posts ) ) {
+			return $posts;
+		}
+		return array_map( static fn( int $id ) => $by_id[ $id ], self::soonestFirst( array_keys( $by_id ), $next, time() ) );
+	}
+
+	/**
+	 * Pure: events without a date first (they still need one), then the ones not over yet by
+	 * the start of their next date, then the past ones; each group otherwise keeps the order it
+	 * came in.
+	 *
+	 * @template T of int|string
+	 * @param list<T>                                 $ids  Events in the order the query gave them.
+	 * @param array<int|string, array{int, int}|null> $next Per event: start and end of the date its row shows, or null.
+	 * @param int                                     $now  The current time (UTC timestamp).
+	 * @return list<T>
+	 */
+	public static function soonestFirst( array $ids, array $next, int $now ): array {
+		$undated  = array();
+		$upcoming = array();
+		$past     = array();
+		foreach ( $ids as $position => $id ) {
+			$when = $next[ $id ] ?? null;
+			if ( null === $when ) {
+				$undated[] = $id;
+			} elseif ( $when[1] < $now ) {
+				$past[] = $id;
+			} else {
+				$upcoming[] = array( $when[0], $position, $id );
+			}
+		}
+		sort( $upcoming ); // By start, then by the position the query gave.
+		return array_merge( $undated, array_column( $upcoming, 2 ), $past );
 	}
 
 	/**
