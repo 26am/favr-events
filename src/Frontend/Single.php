@@ -19,9 +19,15 @@ use FavrEvents\Support\Request;
  */
 final class Single {
 
-	/** Hook. */
+	/**
+	 * Hook: after WordPress has turned the description's blank lines into paragraphs (wpautop,
+	 * priority 10). The panel is markup, not prose. Added before wpautop it came out with a
+	 * closing `</p>` in every row that no `<p>` had opened, which a browser turns into an empty
+	 * paragraph inside the row. Favr Members replaces a members-only page at the very end
+	 * (priority 99999), so the panel of a protected event is still never shown.
+	 */
 	public function hook(): void {
-		add_filter( 'the_content', array( $this, 'content' ), 8 );
+		add_filter( 'the_content', array( $this, 'content' ), 11 );
 	}
 
 	/**
@@ -85,20 +91,19 @@ final class Single {
 	/**
 	 * The details panel, the description in its wrapper, and what follows it.
 	 *
-	 * This runs before WordPress turns blank lines into paragraphs (wpautop, priority 10), and
-	 * wpautop starts a paragraph at a blank line, never at an opening tag. A description typed
-	 * in the editor is stored without `<p>` tags, so glued to the wrapper its first paragraph
-	 * came out without its `<p>` and its last without its `</p>`. Blank lines inside the
-	 * wrapper give every paragraph both. A description that carries its own `<p>` tags comes
-	 * out exactly as it did, and an empty one keeps an empty wrapper.
+	 * The description arrives formatted by WordPress like any other content (every paragraph
+	 * in its `<p>`), and the panel and what follows are printed exactly as their templates
+	 * wrote them. An event without a description keeps an empty wrapper, so a theme's
+	 * `:empty` rule still matches it.
 	 *
 	 * @param string $details The panel above the description.
-	 * @param string $content The description as stored.
+	 * @param string $content The description, formatted.
 	 * @param string $after   What follows the description.
 	 */
 	public static function assemble( string $details, string $content, string $after ): string {
-		if ( '' !== trim( $content ) ) {
-			$content = "\n\n" . $content . "\n\n";
+		$content = trim( $content );
+		if ( '' !== $content ) {
+			$content = "\n" . $content . "\n";
 		}
 		return $details . '<div class="favr-ev-description">' . $content . '</div>' . $after;
 	}

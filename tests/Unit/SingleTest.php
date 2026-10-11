@@ -14,9 +14,10 @@ use FavrEvents\Frontend\Single;
 require_once dirname( __DIR__ ) . '/fixtures/wordpress-autop.php';
 
 /**
- * Frontend\Single filters the_content at priority 8, so what it returns still goes through
- * WordPress's wpautop() at priority 10. These tests run that same function (the copy in
- * tests/fixtures) over the result, which is what a visitor's browser receives.
+ * Frontend\Single filters the_content after WordPress's wpautop() (priority 10) has turned
+ * the description's blank lines into paragraphs, so the details panel never goes through it.
+ * These tests run that same function (the copy in tests/fixtures) over the description and
+ * then add the panel, which is what a visitor's browser receives.
  */
 final class SingleTest extends TestCase {
 
@@ -29,8 +30,51 @@ final class SingleTest extends TestCase {
 	 * @param string $content The description as stored.
 	 */
 	private function page( string $content ): string {
-		return \wpautop( Single::assemble( self::DETAILS, $content, self::AFTER ) );
+		return Single::assemble( self::DETAILS, \wpautop( $content ), self::AFTER );
 	}
+
+	/**
+	 * The details panel as templates/single-details.php prints it: a row per fact, indented.
+	 */
+	private function panel(): string {
+		return "<section class=\"favr-ev-details\" aria-label=\"Event details\">\n"
+			. "\t<dl class=\"favr-ev-details__list\">\n"
+			. "\t\t\t<div>\n\t\t\t\t<dt>When</dt>\n\t\t\t\t<dd>\n\t\t\t\t\tThursday, October 22, 2026 · 7:30 am – 9:00 am\t\t\t\t</dd>\n\t\t\t</div>\n"
+			. "\t\t\t<div>\n\t\t\t\t<dt>Cost</dt>\n\t\t\t\t<dd>\$15 members / \$25 guests</dd>\n\t\t\t</div>\n"
+			. "\t</dl>\n"
+			. "</section>\n";
+	}
+
+	/* ------------------------------------------------------------- The panel */
+
+	/**
+	 * The panel used to be added before wpautop ran. wpautop is made for prose: it closed a
+	 * paragraph it never opened in every row (`</dd> </p></div>`), which a browser turns into
+	 * an empty paragraph inside the row. The panel is now added after it and reaches the page
+	 * byte for byte.
+	 */
+	public function test_the_details_panel_reaches_the_page_exactly_as_the_template_printed_it(): void {
+		$page = Single::assemble( $this->panel(), \wpautop( "First paragraph\n\nSecond paragraph" ), self::AFTER );
+
+		$this->assertStringStartsWith( $this->panel() . '<div class="favr-ev-description">', $page );
+		$this->assertStringNotContainsString( '</p></div>', $page );
+		$this->assertParagraphsBalanced( $page );
+	}
+
+	/** Why: this is what wpautop does to the panel when it gets hold of it. */
+	public function test_wordpress_paragraph_formatting_would_break_the_panel(): void {
+		$this->assertStringContainsString( '</p></div>', \wpautop( $this->panel() ) );
+	}
+
+	public function test_the_panel_is_added_after_wordpress_has_formatted_the_description(): void {
+		$single = new Single();
+		$single->hook();
+
+		$this->assertGreaterThan( 10, has_filter( 'the_content', array( $single, 'content' ) ), 'wpautop runs at priority 10.' );
+		$this->assertLessThan( 99999, has_filter( 'the_content', array( $single, 'content' ) ), 'Favr Members replaces a members-only page last of all.' );
+	}
+
+	/* ------------------------------------------------------- The description */
 
 	/**
 	 * What is inside the description wrapper on the printed page.
@@ -94,16 +138,14 @@ final class SingleTest extends TestCase {
 
 	/**
 	 * Events whose description already carries its own <p> tags (the seeded events, anything
-	 * pasted as HTML) were right before and must come out byte for byte the same.
+	 * pasted as HTML) come out as WordPress formats them anywhere else.
 	 *
 	 * @dataProvider alreadyMarkedUp
 	 *
 	 * @param string $content The description as stored.
 	 */
-	public function test_a_description_with_its_own_paragraph_tags_is_printed_exactly_as_before( string $content ): void {
-		$before = \wpautop( self::DETAILS . '<div class="favr-ev-description">' . $content . '</div>' . self::AFTER );
-
-		$this->assertSame( $before, $this->page( $content ) );
+	public function test_a_description_with_its_own_paragraph_tags_keeps_them( string $content ): void {
+		$this->assertSame( trim( \wpautop( $content ) ), $this->description( $content ) );
 		$this->assertParagraphsBalanced( $this->page( $content ) );
 	}
 
@@ -124,9 +166,9 @@ final class SingleTest extends TestCase {
 		$this->assertStringContainsString( '<div class="favr-ev-description"></div>', $this->page( '' ) );
 	}
 
-	/** The panel and what follows are untouched by the fix. */
+	/** The panel comes first, what follows the description comes last. */
 	public function test_the_details_and_what_follows_stay_where_they_were(): void {
-		$page = Single::assemble( self::DETAILS, "First paragraph\n\nSecond paragraph", self::AFTER );
+		$page = $this->page( "First paragraph\n\nSecond paragraph" );
 
 		$this->assertStringStartsWith( self::DETAILS . '<div class="favr-ev-description">', $page );
 		$this->assertStringEndsWith( '</div>' . self::AFTER, $page );
