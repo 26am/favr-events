@@ -13,12 +13,12 @@ use FavrEvents\Model\Event;
 use FavrEvents\Schema\Identifiers as ID;
 
 /**
- * Adds When and Host columns, sorts by date (events without a date first), filters
- * upcoming/past, and words the list's notices for events.
+ * Adds When and Host columns, opens on the next event (events without a date first, past
+ * ones last), filters upcoming/past, and words the list's notices for events.
  */
 final class ListScreen {
 
-	/** Query flag set on the list's own query: sort by event date, ASC or DESC. */
+	/** Query flag set on the list's own query: sort by event date, NEXT, ASC or DESC. */
 	private const BY_DATE = 'favr_events_by_date';
 
 	/** Hook. */
@@ -43,8 +43,12 @@ final class ListScreen {
 		foreach ( $columns as $key => $label ) {
 			$out[ $key ] = $label;
 			if ( 'title' === $key ) {
+				$out['title']     = __( 'Event', 'favr-events' );
 				$out['favr_when'] = __( 'When', 'favr-events' );
 				$out['favr_host'] = __( 'Host', 'favr-events' );
+			} elseif ( 'taxonomy-' . ID::TAX_CATEGORY === $key ) {
+				// "Categories", as on News, Directory and Documents: the list is already the events'.
+				$out[ $key ] = __( 'Categories', 'favr-events' );
 			}
 		}
 		unset( $out['date'] );
@@ -68,7 +72,7 @@ final class ListScreen {
 				echo '<span class="favr-muted">' . esc_html__( 'No date', 'favr-events' ) . '</span>';
 				return;
 			}
-			echo esc_html( wp_date( (string) get_option( 'date_format' ) . ( $event->isAllDay() ? '' : ' ' . get_option( 'time_format' ) ), $next['start']->getTimestamp() ) );
+			echo wp_kses( self::when( $next['start'], $event->isAllDay() ), array( 'span' => array( 'class' => true ) ) );
 			if ( $event->repeats() ) {
 				echo ' <span class="dashicons dashicons-update" title="' . esc_attr__( 'Repeats', 'favr-events' ) . '"></span>';
 			}
@@ -79,8 +83,45 @@ final class ListScreen {
 				echo ' <span class="dashicons dashicons-star-filled" title="' . esc_attr__( 'Featured', 'favr-events' ) . '"></span>';
 			}
 		} elseif ( 'favr_host' === $column ) {
-			echo esc_html( $event->organizerName() );
+			echo wp_kses(
+				self::host( $event->organizerName() ),
+				array(
+					'span' => array(
+						'class'       => true,
+						'aria-hidden' => true,
+					),
+				)
+			);
 		}
+	}
+
+	/**
+	 * The When cell: "Oct 16, 2026 · 8:00 am", the short date of the other lists, with the
+	 * time kept on one line. An all-day event shows its date only.
+	 *
+	 * @param \DateTimeImmutable $start   Start of the occurrence shown.
+	 * @param bool               $all_day All-day event.
+	 * @return string HTML.
+	 */
+	public static function when( \DateTimeImmutable $start, bool $all_day ): string {
+		$date = esc_html( wp_date( 'M j, Y', $start->getTimestamp() ) );
+		if ( $all_day ) {
+			return $date;
+		}
+		return $date . ' · <span class="favr-ev-time">' . esc_html( wp_date( (string) get_option( 'time_format' ), $start->getTimestamp() ) ) . '</span>';
+	}
+
+	/**
+	 * The Host cell: the name, or the dash the other lists print in an empty cell.
+	 *
+	 * @param string $name Host or organizer.
+	 * @return string HTML.
+	 */
+	public static function host( string $name ): string {
+		if ( '' === $name ) {
+			return '<span aria-hidden="true">—</span><span class="screen-reader-text">' . esc_html__( 'No host', 'favr-events' ) . '</span>';
+		}
+		return esc_html( $name );
 	}
 
 	/**
@@ -95,7 +136,7 @@ final class ListScreen {
 	}
 
 	/**
-	 * Default: in date order, soonest first; ?favr_when=upcoming|past narrows the list.
+	 * Default: the next event first (see dateClauses()); ?favr_when=upcoming|past narrows the list.
 	 *
 	 * @param \WP_Query $query Query.
 	 */
@@ -110,17 +151,7 @@ final class ListScreen {
 			$query->set( self::BY_DATE, $direction );
 		}
 		if ( in_array( $when, array( 'upcoming', 'past' ), true ) ) {
-			$query->set(
-				'meta_query',
-				array(
-					array(
-						'key'     => ID::META_LAST,
-						'value'   => time(),
-						'compare' => 'upcoming' === $when ? '>=' : '<',
-						'type'    => 'NUMERIC',
-					),
-				)
-			);
+			$query->set( 'meta_query', array( self::whenQuery( $when ) ) );
 			if ( 'past' === $when ) {
 				$query->set( 'order', 'DESC' );
 			}
@@ -128,8 +159,9 @@ final class ListScreen {
 	}
 
 	/**
-	 * Direction of the date sort, or '' when the list is sorted by another column. Past events
-	 * always start with the most recent.
+	 * How the list is sorted by date, or '' when it is sorted by another column: NEXT when
+	 * nothing was chosen (the next event first), ASC or DESC after a click on the When heading
+	 * and in the Upcoming view. Past events always start with the most recent.
 	 *
 	 * @param string $orderby Requested column ('' = none, 'favr_when' = the When column).
 	 * @param string $order   Requested direction.
@@ -141,6 +173,9 @@ final class ListScreen {
 		}
 		if ( 'past' === $when ) {
 			return 'DESC';
+		}
+		if ( '' === $orderby && 'upcoming' !== $when ) {
+			return 'NEXT';
 		}
 		return 'favr_when' === $orderby && 'DESC' === strtoupper( $order ) ? 'DESC' : 'ASC';
 	}
@@ -154,11 +189,11 @@ final class ListScreen {
 	 */
 	public function clauses( array $clauses, \WP_Query $query ): array {
 		$direction = (string) $query->get( self::BY_DATE );
-		if ( ! in_array( $direction, array( 'ASC', 'DESC' ), true ) ) {
+		if ( ! in_array( $direction, array( 'NEXT', 'ASC', 'DESC' ), true ) ) {
 			return $clauses;
 		}
 		global $wpdb;
-		return self::dateClauses( $clauses, $wpdb->posts, $wpdb->postmeta, $direction );
+		return self::dateClauses( $clauses, $wpdb->posts, $wpdb->postmeta, $direction, time() );
 	}
 
 	/**
@@ -166,21 +201,35 @@ final class ListScreen {
 	 * A meta_key sort would leave those out, so a draft saved without a date was counted in
 	 * "All" but missing from the rows. They are listed first: they still need a date.
 	 *
+	 * NEXT is the order the list opens in: after the events without a date come the upcoming
+	 * ones, soonest first, then the past ones, most recent first, so page one is never last
+	 * year. "Past" is the Upcoming view's rule (the last end, META_LAST, is over), which keeps
+	 * a repeating event that started long ago among the upcoming ones. Each index is one row
+	 * per event, so the joins never repeat an event.
+	 *
 	 * @param array<string, string> $clauses   Query clauses.
 	 * @param string                $posts     Posts table.
 	 * @param string                $postmeta  Post meta table.
-	 * @param string                $direction ASC or DESC.
+	 * @param string                $direction NEXT, ASC or DESC.
+	 * @param int                   $now       The current time (UTC timestamp), for NEXT.
 	 * @return array<string, string>
 	 */
-	public static function dateClauses( array $clauses, string $posts, string $postmeta, string $direction ): array {
-		$direction          = 'DESC' === $direction ? 'DESC' : 'ASC';
-		$clauses['join']    = ( $clauses['join'] ?? '' ) . " LEFT JOIN {$postmeta} AS favr_ev_first ON ( favr_ev_first.post_id = {$posts}.ID AND favr_ev_first.meta_key = '" . ID::META_FIRST . "' )";
-		$clauses['orderby'] = "( favr_ev_first.meta_value IS NULL ) DESC, CAST( favr_ev_first.meta_value AS SIGNED ) {$direction}, {$posts}.ID DESC";
+	public static function dateClauses( array $clauses, string $posts, string $postmeta, string $direction, int $now = 0 ): array {
+		$first           = 'CAST( favr_ev_first.meta_value AS SIGNED )';
+		$clauses['join'] = ( $clauses['join'] ?? '' ) . " LEFT JOIN {$postmeta} AS favr_ev_first ON ( favr_ev_first.post_id = {$posts}.ID AND favr_ev_first.meta_key = '" . ID::META_FIRST . "' )";
+		if ( 'NEXT' !== $direction ) {
+			$direction          = 'DESC' === $direction ? 'DESC' : 'ASC';
+			$clauses['orderby'] = "( favr_ev_first.meta_value IS NULL ) DESC, {$first} {$direction}, {$posts}.ID DESC";
+			return $clauses;
+		}
+		$over               = "CAST( favr_ev_last.meta_value AS SIGNED ) < {$now}";
+		$clauses['join']   .= " LEFT JOIN {$postmeta} AS favr_ev_last ON ( favr_ev_last.post_id = {$posts}.ID AND favr_ev_last.meta_key = '" . ID::META_LAST . "' )";
+		$clauses['orderby'] = "( favr_ev_first.meta_value IS NULL ) DESC, ( {$over} ) ASC, CASE WHEN {$over} THEN -{$first} ELSE {$first} END ASC, {$posts}.ID DESC";
 		return $clauses;
 	}
 
 	/**
-	 * Upcoming / Past views.
+	 * Upcoming / Past views, with their counts, before Trash.
 	 *
 	 * @param array<string, string> $views Views.
 	 * @return array<string, string>
@@ -188,18 +237,91 @@ final class ListScreen {
 	public function views( array $views ): array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- list filter.
 		$when = isset( $_GET['favr_when'] ) ? sanitize_key( wp_unslash( $_GET['favr_when'] ) ) : '';
+		$own  = array();
 		foreach ( array(
 			'upcoming' => __( 'Upcoming', 'favr-events' ),
 			'past'     => __( 'Past', 'favr-events' ),
 		) as $key => $label ) {
-			$views[ 'favr_' . $key ] = sprintf(
-				'<a href="%1$s"%2$s>%3$s</a>',
-				esc_url( add_query_arg( 'favr_when', $key, admin_url( 'edit.php?post_type=' . ID::POST_TYPE ) ) ),
-				$when === $key ? ' class="current" aria-current="page"' : '',
-				esc_html( $label )
+			$own[ 'favr_' . $key ] = self::viewLink(
+				add_query_arg( 'favr_when', $key, admin_url( 'edit.php?post_type=' . ID::POST_TYPE ) ),
+				$label,
+				self::countWhen( $key ),
+				$when === $key
 			);
 		}
-		return $views;
+		return self::beforeTrash( $views, $own );
+	}
+
+	/**
+	 * One view tab, written like WordPress's own: "Upcoming (12)".
+	 *
+	 * @param string $url     Where it leads.
+	 * @param string $label   Name.
+	 * @param int    $count   How many events it lists.
+	 * @param bool   $current The view being shown.
+	 */
+	public static function viewLink( string $url, string $label, int $count, bool $current ): string {
+		return sprintf(
+			'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
+			esc_url( $url ),
+			$current ? ' class="current" aria-current="page"' : '',
+			esc_html( $label ),
+			esc_html( number_format_i18n( $count ) )
+		);
+	}
+
+	/**
+	 * Put the plugin's own views before Trash: Trash closes the row on every other list.
+	 *
+	 * @param array<string, string> $views WordPress's views.
+	 * @param array<string, string> $own   The views to add.
+	 * @return array<string, string>
+	 */
+	public static function beforeTrash( array $views, array $own ): array {
+		if ( ! isset( $views['trash'] ) ) {
+			return $views + $own;
+		}
+		$trash = $views['trash'];
+		unset( $views['trash'] );
+		return $views + $own + array( 'trash' => $trash );
+	}
+
+	/**
+	 * How many events the Upcoming or the Past view lists: the same condition as the view
+	 * itself (see query()), over the statuses the list shows.
+	 *
+	 * @param string $when upcoming | past.
+	 */
+	private static function countWhen( string $when ): int {
+		$query = new \WP_Query(
+			array(
+				'post_type'              => ID::POST_TYPE,
+				'post_status'            => array_values( get_post_stati( array( 'show_in_admin_all_list' => true ) ) ),
+				'perm'                   => 'readable',
+				'fields'                 => 'ids',
+				'posts_per_page'         => 1,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- one indexed key, counted once per list view.
+				'meta_query'             => array( self::whenQuery( $when ) ),
+			)
+		);
+		return (int) $query->found_posts;
+	}
+
+	/**
+	 * The meta query behind the Upcoming and Past views: is the event's last end over?
+	 *
+	 * @param string $when upcoming | past.
+	 * @return array<string, mixed>
+	 */
+	private static function whenQuery( string $when ): array {
+		return array(
+			'key'     => ID::META_LAST,
+			'value'   => time(),
+			'compare' => 'upcoming' === $when ? '>=' : '<',
+			'type'    => 'NUMERIC',
+		);
 	}
 
 	/**
