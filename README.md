@@ -11,8 +11,9 @@ Events and a community calendar for **Chambers of Commerce** and **associations*
 ## Features
 
 **Staff (wp-admin → Events)**
-- One tabbed form: *Date & time* (all-day, multi-day, repeats), *Location* (in person, online or
-  both), *Tickets & details* (cost, registration link, featured) and *Host*.
+- One tabbed form: *Date & time* (all-day, multi-day, repeats), *Description* (the full
+  description and a short summary for search engines and calendar apps), *Location* (in person,
+  online or both), *Tickets & details* (cost, registration link, featured) and *Host*.
 - Repeats: weekly, every N weeks, monthly on a date, or monthly by position ("2nd Tuesday",
   "last Friday"), with an optional end date. Occurrences are calculated on the fly.
 - List with *When* and *Host* columns, sorted by date, with Upcoming and Past views.

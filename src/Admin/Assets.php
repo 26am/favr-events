@@ -13,7 +13,8 @@ use FavrEvents\Schema\Identifiers as ID;
 use FavrEvents\Support\AssetVersion;
 
 /**
- * Shared field UI (favr/core, copied to assets/core) on event screens.
+ * Shared field UI (favr/core, copied to assets/core) on event screens, plus the edit screen's
+ * own script.
  */
 final class Assets {
 
@@ -33,6 +34,8 @@ final class Assets {
 		$settings = str_contains( (string) $screen->id, SettingsPage::SLUG );
 		if ( 'post' === $screen->base ) {
 			wp_enqueue_media();
+			// After WordPress's own edit-screen script, whose Tab-from-title shortcut it removes.
+			wp_enqueue_script( 'favr-events-admin', FAVR_EVENTS_URL . 'assets/admin/admin.js', array( 'jquery', 'post' ), AssetVersion::of( 'assets/admin/admin.js' ), true );
 		}
 		if ( $settings ) {
 			wp_enqueue_style( 'wp-color-picker' );

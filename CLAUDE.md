@@ -22,6 +22,12 @@ Local test site: `http://sermonator-test.local/`, with this repo symlinked to
 - **Fields** are declared once in `Model\Fields` (favr/core `FieldSet`) and drive the admin panel,
   the member form, sanitizing and meta registration. `host_business` is stored as a listing id and
   becomes a select only in forms (`Fields::forForm()`), so no listing query runs on every request.
+- **Edit screen:** `Admin\EditScreen` draws the tabbed panel itself (the same markup as favr/core's
+  `FieldRenderer::panel()`, which cannot hold a tab of custom content). Its *Description* tab holds
+  the WordPress editor (`content` → post content) and the *Short summary* (`excerpt` → post
+  excerpt), under WordPress's own field names so saving and autosave work untouched. WordPress's
+  own editor and Excerpt box are switched off for that screen only (`prepareScreen()`,
+  `metaBoxes()`); REST, the front end and member submissions keep editor support.
 - **Schedule:** local date/time strings; `Model\Event::bounds()` derives the first start/end and
   `Model\Occurrences` expands repeats (pure, unit tested). `Event::reindex()` keeps
   `_favr_event_first`/`_favr_event_last` current. Call it after any direct meta write.
