@@ -71,9 +71,18 @@ final class Event {
 		return is_scalar( $value ) ? trim( (string) $value ) : '';
 	}
 
-	/** All day? */
+	/**
+	 * All day? Also true for an event that has no start time: nobody means "12:00 am" by
+	 * leaving the time empty, so it is shown as a date without a time everywhere (the list,
+	 * the event page, the Approvals card, the calendar feeds).
+	 */
 	public function isAllDay(): bool {
-		return '1' === $this->text( 'all_day' );
+		return '1' === $this->text( 'all_day' ) || '' === $this->text( 'start_time' );
+	}
+
+	/** Has a date, no start time, and "All-day event" is off: all day because nothing else can be said. */
+	public function isAllDayForLackOfATime(): bool {
+		return '1' !== $this->text( 'all_day' ) && '' === $this->text( 'start_time' ) && '' !== $this->text( 'start_date' );
 	}
 
 	/** Repeat rule. */

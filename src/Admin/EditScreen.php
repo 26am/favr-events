@@ -308,6 +308,8 @@ final class EditScreen {
 			$event = $post ? new Event( $post ) : null;
 			if ( $event && 'auto-draft' !== $post->post_status && ! $event->start() ) {
 				echo '<div class="notice notice-warning"><p>' . esc_html__( 'Add a start date so this event appears on the calendar.', 'favr-events' ) . '</p></div>';
+			} elseif ( $event && 'auto-draft' !== $post->post_status && $event->isAllDayForLackOfATime() ) {
+				echo '<div class="notice notice-info"><p>' . esc_html__( 'This event has no start time, so it is shown as an all-day event. Add a start time if it has one.', 'favr-events' ) . '</p></div>';
 			}
 		}
 		$key      = 'favr_events_warnings_' . get_current_user_id();
