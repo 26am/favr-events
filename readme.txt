@@ -4,7 +4,7 @@ Tags: events, calendar, chamber of commerce, association, ical
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,14 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 * Works with Favr Directory (host businesses) and Favr Members (member submissions).
 
 == Changelog ==
+
+= 1.1.2 =
+* The events list opens on the next event: events that still need a date first, then upcoming ones soonest first (a repeating event by its next date), then past ones, most recent first. "Upcoming" and "Past" carry counts and come before Trash.
+* An event with a date and no start time is an all-day event everywhere it is shown (the list, the event page, the calendar file, Approvals) instead of starting at 12:00 am. Events saved that way earlier are re-indexed once when the plugin updates.
+* The list's search also finds a venue or a city.
+* The When column reads "Oct 16, 2026 · 8:00 am"; the columns are headed "Event" and "Categories"; an empty Host shows a dash.
+* Wording: "Hosted by (directory listing)", the address labels of Favr Directory and Favr Members, "My events (submit and manage)" for the widget and block, "Rejected" after a rejection.
+* Fix: the details panel on the event page no longer carries a stray closing paragraph tag.
 
 = 1.1.1 =
 * Edit screen: the description editor is inside the event panel, on its own "Description" tab after "Date & time", instead of below the panel.
