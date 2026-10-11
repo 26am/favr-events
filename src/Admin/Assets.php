@@ -30,17 +30,15 @@ final class Assets {
 		}
 		wp_enqueue_style( 'favr-core-fields', FAVR_EVENTS_URL . 'assets/core/fields.css', array(), AssetVersion::of( 'assets/core/fields.css' ) );
 		wp_enqueue_style( 'favr-events-admin', FAVR_EVENTS_URL . 'assets/admin/admin.css', array( 'favr-core-fields' ), AssetVersion::of( 'assets/admin/admin.css' ) );
-		$deps = array( 'jquery' );
+		$settings = str_contains( (string) $screen->id, SettingsPage::SLUG );
 		if ( 'post' === $screen->base ) {
 			wp_enqueue_media();
-			$deps[] = 'jquery-ui-sortable';
 		}
-		if ( str_contains( (string) $screen->id, SettingsPage::SLUG ) ) {
+		if ( $settings ) {
 			wp_enqueue_style( 'wp-color-picker' );
-			$deps[] = 'wp-color-picker';
 			wp_add_inline_script( 'wp-color-picker', 'jQuery(function($){$(".favr-color").wpColorPicker();});' );
 		}
-		wp_enqueue_script( 'favr-core-fields', FAVR_EVENTS_URL . 'assets/core/fields.js', $deps, AssetVersion::of( 'assets/core/fields.js' ), true );
+		wp_enqueue_script( 'favr-core-fields', FAVR_EVENTS_URL . 'assets/core/fields.js', self::scriptDependencies( $settings ), AssetVersion::of( 'assets/core/fields.js' ), true );
 		wp_localize_script(
 			'favr-core-fields',
 			'favrCoreFields',
@@ -53,5 +51,22 @@ final class Assets {
 				),
 			)
 		);
+	}
+
+	/**
+	 * What the field script needs before it runs. It calls jQuery UI sortable as soon as the
+	 * page is ready on every screen, gallery or not, so sortable is always loaded with it: on
+	 * the events list, the categories screen and Event settings the script used to stop with
+	 * "$(...).sortable is not a function".
+	 *
+	 * @param bool $settings The Event settings screen (adds the color picker).
+	 * @return list<string>
+	 */
+	public static function scriptDependencies( bool $settings ): array {
+		$deps = array( 'jquery', 'jquery-ui-sortable' );
+		if ( $settings ) {
+			$deps[] = 'wp-color-picker';
+		}
+		return $deps;
 	}
 }
