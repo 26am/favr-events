@@ -99,7 +99,49 @@ final class Activation {
 				wp_insert_term( $name, ID::TAX_CATEGORY );
 			}
 		}
+		self::reindexUntimed();
 		update_option( ID::OPTION_VERSION, FAVR_EVENTS_VERSION );
+	}
+
+	/**
+	 * Rebuild the date index of the events that have a date and no start time. They are all-day
+	 * events (Event::isAllDay()); those saved before that rule were indexed as ending at
+	 * 1:00 am, so the list filed them under Past during their own day. Safe to run again.
+	 *
+	 * @return int How many events were reindexed.
+	 */
+	public static function reindexUntimed(): int {
+		$time = ID::meta( 'start_time' );
+		$ids  = get_posts(
+			array(
+				'post_type'      => ID::POST_TYPE,
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- once per upgrade.
+				'meta_query'     => array(
+					array(
+						'key'     => ID::META_FIRST,
+						'compare' => 'EXISTS',
+					),
+					array(
+						'relation' => 'OR',
+						array(
+							'key'     => $time,
+							'compare' => 'NOT EXISTS',
+						),
+						array(
+							'key'   => $time,
+							'value' => '',
+						),
+					),
+				),
+			)
+		);
+		foreach ( $ids as $id ) {
+			Event::reindex( (int) $id );
+		}
+		return count( $ids );
 	}
 
 	/** Remove capabilities (uninstall). */

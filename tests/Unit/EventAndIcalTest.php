@@ -9,11 +9,20 @@ declare(strict_types=1);
 
 namespace FavrEvents\Tests\Unit;
 
+use Brain\Monkey\Functions;
 use FavrEvents\Frontend\Ical;
 use FavrEvents\Model\Event;
-use PHPUnit\Framework\TestCase as Base;
 
-final class EventAndIcalTest extends Base {
+final class EventAndIcalTest extends TestCase {
+
+	/**
+	 * Dates are read in the site's time zone. Stubbed here so these tests do not depend on
+	 * whether an earlier test has already defined wp_timezone().
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+		Functions\when( 'wp_timezone' )->alias( static fn(): \DateTimeZone => new \DateTimeZone( 'UTC' ) );
+	}
 
 	private function fmt( array $bounds ): array {
 		return array_map( static fn( $d ) => $d ? $d->format( 'Y-m-d H:i' ) : null, $bounds );
