@@ -4,7 +4,7 @@ Tags: events, calendar, chamber of commerce, association, ical
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,13 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 * Works with Favr Directory (host businesses) and Favr Members (member submissions).
 
 == Changelog ==
+
+= 1.1.1 =
+* Edit screen: the description editor is inside the event panel, on its own "Description" tab after "Date & time", instead of below the panel.
+* Edit screen: WordPress's Excerpt box is replaced by a "Short summary" field on the Description tab (still saved as the excerpt; used by search engines and calendar apps).
+* Wording: sentence case throughout wp-admin ("All events", "Add event", "Event categories", "Add category"), "Event name" as the title prompt, and "event" instead of "post" in list notices and the media window.
+* Dashboard card dates read month first ("Fri, Oct 16").
+* Fix: "sortable is not a function" script error on the events list, the categories screen and Event settings.
 
 = 1.1.0 =
 * Events card (dates in the next 30 days) and "Add event" button on the Favr dashboard (Favr Sites plugin).
