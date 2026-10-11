@@ -60,6 +60,7 @@ final class Plugin {
 			( new Admin\Assets() )->hook();
 			( new Admin\EditScreen() )->hook();
 			( new Admin\ListScreen() )->hook();
+			( new Admin\ListSearch() )->hook();
 			( new Admin\SettingsPage() )->hook();
 			Vendor\FavrCore\Approvals\Inbox::boot();
 		}
