@@ -29,6 +29,7 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 * Dashboard card dates read month first ("Fri, Oct 16").
 * Fix: "sortable is not a function" script error on the events list, the categories screen and Event settings.
 * Fix: events without a start date were counted but not shown in the events list; they are now listed first, marked "No date".
+* Fix: on the event page, a description typed in the editor lost the opening tag of its first paragraph (and a one-line description was not a paragraph at all). Every paragraph is now wrapped; descriptions that carry their own paragraph tags are printed exactly as before.
 
 = 1.1.0 =
 * Events card (dates in the next 30 days) and "Add event" button on the Favr dashboard (Favr Sites plugin).

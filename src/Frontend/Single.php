@@ -79,6 +79,27 @@ final class Single {
 			)
 		);
 		$after      = View::render( 'single-after', array( 'event' => $event ) );
+		return self::assemble( $details, $content, $after );
+	}
+
+	/**
+	 * The details panel, the description in its wrapper, and what follows it.
+	 *
+	 * This runs before WordPress turns blank lines into paragraphs (wpautop, priority 10), and
+	 * wpautop starts a paragraph at a blank line, never at an opening tag. A description typed
+	 * in the editor is stored without `<p>` tags, so glued to the wrapper its first paragraph
+	 * came out without its `<p>` and its last without its `</p>`. Blank lines inside the
+	 * wrapper give every paragraph both. A description that carries its own `<p>` tags comes
+	 * out exactly as it did, and an empty one keeps an empty wrapper.
+	 *
+	 * @param string $details The panel above the description.
+	 * @param string $content The description as stored.
+	 * @param string $after   What follows the description.
+	 */
+	public static function assemble( string $details, string $content, string $after ): string {
+		if ( '' !== trim( $content ) ) {
+			$content = "\n\n" . $content . "\n\n";
+		}
 		return $details . '<div class="favr-ev-description">' . $content . '</div>' . $after;
 	}
 }
