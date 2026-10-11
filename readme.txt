@@ -24,6 +24,7 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 = 1.1.1 =
 * Edit screen: the description editor is inside the event panel, on its own "Description" tab after "Date & time", instead of below the panel.
 * Edit screen: WordPress's Excerpt box is replaced by a "Short summary" field on the Description tab (still saved as the excerpt; used by search engines and calendar apps).
+* Edit screen: "Add event" always opens on the Date & time tab, whichever tab was used last.
 * Wording: sentence case throughout wp-admin ("All events", "Add event", "Event categories", "Add category"), "Event name" as the title prompt, and "event" instead of "post" in list notices and the media window.
 * Dashboard card dates read month first ("Fri, Oct 16").
 * Fix: "sortable is not a function" script error on the events list, the categories screen and Event settings.
