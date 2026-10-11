@@ -122,7 +122,7 @@ final class Queues {
 	}
 
 	/**
-	 * Approve (publish) or decline a submission.
+	 * Approve (publish) or reject a submission.
 	 *
 	 * @param int               $post_id  Event.
 	 * @param string            $decision approve | reject.
@@ -165,8 +165,17 @@ final class Queues {
 		);
 		PendingChanges::log( $post_id, 'rejected', array(), get_current_user_id(), $note );
 		Notifier::decided( $post_id, $author, 'event_declined', $note );
+		return self::rejectedMessage( get_the_title( $post_id ) );
+	}
+
+	/**
+	 * What the reviewer reads after pressing Reject: the button's own word.
+	 *
+	 * @param string $title Event.
+	 */
+	public static function rejectedMessage( string $title ): string {
 		/* translators: %s: event. */
-		return sprintf( __( 'Declined %s.', 'favr-events' ), get_the_title( $post_id ) );
+		return sprintf( __( 'Rejected %s.', 'favr-events' ), $title );
 	}
 
 	/**

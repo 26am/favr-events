@@ -24,7 +24,7 @@ final class MyEventsWidget extends Widget {
 
 	/** Title. */
 	public function get_title(): string {
-		return __( 'My Events (submit & manage)', 'favr-events' );
+		return __( 'My events (submit and manage)', 'favr-events' );
 	}
 
 	/** Icon. */

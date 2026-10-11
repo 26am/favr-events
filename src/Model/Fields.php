@@ -156,14 +156,14 @@ final class Fields {
 			),
 			array(
 				'id'         => 'state',
-				'label'      => __( 'State / region', 'favr-events' ),
+				'label'      => __( 'State / province', 'favr-events' ),
 				'tab'        => 'where',
 				'width'      => 'third',
 				'conditions' => $place,
 			),
 			array(
 				'id'         => 'postal_code',
-				'label'      => __( 'Postal code', 'favr-events' ),
+				'label'      => __( 'ZIP / postal code', 'favr-events' ),
 				'tab'        => 'where',
 				'width'      => 'third',
 				'conditions' => $place,
@@ -201,18 +201,18 @@ final class Fields {
 			),
 			array(
 				'id'          => 'host_business',
-				'label'       => __( 'Hosted by (directory business)', 'favr-events' ),
+				'label'       => __( 'Hosted by (directory listing)', 'favr-events' ),
 				'type'        => 'number', // Stored as a listing id; shown as a select by Fields::forForm().
 				'tab'         => 'host',
 				'min'         => 1,
-				'description' => __( 'Shows the business card on the event and the event on the business profile.', 'favr-events' ),
+				'description' => __( 'Shows the listing’s card on the event and the event on the listing.', 'favr-events' ),
 			),
 			array(
 				'id'          => 'organizer_name',
 				'label'       => __( 'Organizer', 'favr-events' ),
 				'tab'         => 'host',
 				'width'       => 'half',
-				'description' => __( 'A person or group, if not a directory business.', 'favr-events' ),
+				'description' => __( 'A person or group, if not in the directory.', 'favr-events' ),
 			),
 			array(
 				'id'    => 'organizer_email',
