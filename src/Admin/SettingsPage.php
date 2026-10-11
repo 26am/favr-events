@@ -28,7 +28,7 @@ final class SettingsPage {
 
 	/** Menu. */
 	public function menu(): void {
-		add_submenu_page( 'edit.php?post_type=' . ID::POST_TYPE, __( 'Event Settings', 'favr-events' ), __( 'Settings', 'favr-events' ), ID::CAP_SETTINGS, self::SLUG, array( $this, 'render' ) );
+		add_submenu_page( 'edit.php?post_type=' . ID::POST_TYPE, __( 'Event settings', 'favr-events' ), __( 'Settings', 'favr-events' ), ID::CAP_SETTINGS, self::SLUG, array( $this, 'render' ) );
 	}
 
 	/** Register. */
@@ -79,7 +79,7 @@ final class SettingsPage {
 		$opt = ID::OPTION_SETTINGS;
 		?>
 		<div class="wrap favr-settings">
-			<h1><?php esc_html_e( 'Event Settings', 'favr-events' ); ?></h1>
+			<h1><?php esc_html_e( 'Event settings', 'favr-events' ); ?></h1>
 			<form method="post" action="options.php" class="favr-card">
 				<?php settings_fields( 'favr_events' ); ?>
 				<table class="form-table" role="presentation">

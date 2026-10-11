@@ -33,24 +33,7 @@ final class Registrar {
 		register_post_type(
 			ID::POST_TYPE,
 			array(
-				'labels'          => array(
-					'name'               => __( 'Events', 'favr-events' ),
-					'singular_name'      => __( 'Event', 'favr-events' ),
-					'menu_name'          => __( 'Events', 'favr-events' ),
-					'all_items'          => __( 'All Events', 'favr-events' ),
-					'add_new'            => __( 'Add Event', 'favr-events' ),
-					'add_new_item'       => __( 'Add New Event', 'favr-events' ),
-					'edit_item'          => __( 'Edit Event', 'favr-events' ),
-					'new_item'           => __( 'New Event', 'favr-events' ),
-					'view_item'          => __( 'View Event', 'favr-events' ),
-					'search_items'       => __( 'Search Events', 'favr-events' ),
-					'not_found'          => __( 'No events found.', 'favr-events' ),
-					'not_found_in_trash' => __( 'No events found in Trash.', 'favr-events' ),
-					'featured_image'     => __( 'Event image', 'favr-events' ),
-					'set_featured_image' => __( 'Set event image', 'favr-events' ),
-					'item_published'     => __( 'Event published.', 'favr-events' ),
-					'item_updated'       => __( 'Event updated.', 'favr-events' ),
-				),
+				'labels'          => self::postTypeLabels(),
 				'public'          => true,
 				'show_in_rest'    => true,
 				'has_archive'     => false,
@@ -67,20 +50,77 @@ final class Registrar {
 		);
 	}
 
+	/**
+	 * The words for events, in sentence case ("All events / Add event / Edit event").
+	 *
+	 * @return array<string, string>
+	 */
+	public static function postTypeLabels(): array {
+		return array(
+			'name'                  => __( 'Events', 'favr-events' ),
+			'singular_name'         => __( 'Event', 'favr-events' ),
+			'menu_name'             => __( 'Events', 'favr-events' ),
+			'all_items'             => __( 'All events', 'favr-events' ),
+			'add_new'               => __( 'Add event', 'favr-events' ),
+			'add_new_item'          => __( 'Add event', 'favr-events' ),
+			'edit_item'             => __( 'Edit event', 'favr-events' ),
+			'new_item'              => __( 'New event', 'favr-events' ),
+			'view_item'             => __( 'View event', 'favr-events' ),
+			'view_items'            => __( 'View events', 'favr-events' ),
+			'search_items'          => __( 'Search events', 'favr-events' ),
+			'not_found'             => __( 'No events found.', 'favr-events' ),
+			'not_found_in_trash'    => __( 'No events found in Trash.', 'favr-events' ),
+			'featured_image'        => __( 'Event image', 'favr-events' ),
+			'set_featured_image'    => __( 'Set event image', 'favr-events' ),
+			'remove_featured_image' => __( 'Remove event image', 'favr-events' ),
+			'use_featured_image'    => __( 'Use as event image', 'favr-events' ),
+			'insert_into_item'      => __( 'Insert into event', 'favr-events' ),
+			'uploaded_to_this_item' => __( 'Uploaded to this event', 'favr-events' ),
+			'filter_items_list'     => __( 'Filter events list', 'favr-events' ),
+			'items_list_navigation' => __( 'Events list navigation', 'favr-events' ),
+			'items_list'            => __( 'Events list', 'favr-events' ),
+			'item_published'        => __( 'Event published.', 'favr-events' ),
+			'item_updated'          => __( 'Event updated.', 'favr-events' ),
+		);
+	}
+
+	/**
+	 * The words for event categories. The screen is "Event categories"; one of them is simply
+	 * a "Category", as the menu and the box on the event say.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function categoryLabels(): array {
+		return array(
+			'name'                  => __( 'Event categories', 'favr-events' ),
+			'singular_name'         => __( 'Category', 'favr-events' ),
+			'menu_name'             => __( 'Categories', 'favr-events' ),
+			'all_items'             => __( 'All categories', 'favr-events' ),
+			'edit_item'             => __( 'Edit category', 'favr-events' ),
+			'view_item'             => __( 'View category', 'favr-events' ),
+			'update_item'           => __( 'Update category', 'favr-events' ),
+			'add_new_item'          => __( 'Add category', 'favr-events' ),
+			'new_item_name'         => __( 'New category name', 'favr-events' ),
+			'parent_item'           => __( 'Parent category', 'favr-events' ),
+			'parent_item_colon'     => __( 'Parent category:', 'favr-events' ),
+			'search_items'          => __( 'Search categories', 'favr-events' ),
+			'not_found'             => __( 'No categories found.', 'favr-events' ),
+			'no_terms'              => __( 'No categories', 'favr-events' ),
+			'most_used'             => __( 'Most used', 'favr-events' ),
+			'filter_by_item'        => __( 'Filter by category', 'favr-events' ),
+			'items_list_navigation' => __( 'Categories list navigation', 'favr-events' ),
+			'items_list'            => __( 'Categories list', 'favr-events' ),
+			'back_to_items'         => __( '← All categories', 'favr-events' ),
+		);
+	}
+
 	/** Event categories. */
 	public function registerTaxonomy(): void {
 		register_taxonomy(
 			ID::TAX_CATEGORY,
 			array( ID::POST_TYPE ),
 			array(
-				'labels'             => array(
-					'name'          => __( 'Event Categories', 'favr-events' ),
-					'singular_name' => __( 'Event Category', 'favr-events' ),
-					'menu_name'     => __( 'Categories', 'favr-events' ),
-					'all_items'     => __( 'All Categories', 'favr-events' ),
-					'edit_item'     => __( 'Edit Category', 'favr-events' ),
-					'add_new_item'  => __( 'Add New Category', 'favr-events' ),
-				),
+				'labels'             => self::categoryLabels(),
 				'hierarchical'       => true,
 				// No archive pages: a theme's generic archive would list events without dates.
 				// Categories filter the Events page (?fe_cat=) instead, so nothing thin reaches

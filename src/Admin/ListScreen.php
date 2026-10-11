@@ -13,7 +13,8 @@ use FavrEvents\Model\Event;
 use FavrEvents\Schema\Identifiers as ID;
 
 /**
- * Adds When and Host columns, sorts by date, and filters upcoming/past.
+ * Adds When and Host columns, sorts by date, filters upcoming/past, and words the list's
+ * notices for events.
  */
 final class ListScreen {
 
@@ -24,6 +25,7 @@ final class ListScreen {
 		add_filter( 'manage_edit-' . ID::POST_TYPE . '_sortable_columns', array( $this, 'sortable' ) );
 		add_action( 'pre_get_posts', array( $this, 'query' ) );
 		add_filter( 'views_edit-' . ID::POST_TYPE, array( $this, 'views' ) );
+		add_filter( 'bulk_post_updated_messages', array( $this, 'bulkMessages' ), 10, 2 );
 	}
 
 	/**
@@ -146,5 +148,31 @@ final class ListScreen {
 			);
 		}
 		return $views;
+	}
+
+	/**
+	 * Notices after trashing, restoring or bulk-editing from the list: "1 event moved to the
+	 * Trash." instead of "1 post…".
+	 *
+	 * @param array<string, array<string, string>> $messages Messages per post type.
+	 * @param array<string, int>                   $counts   How many items each action touched.
+	 * @return array<string, array<string, string>>
+	 */
+	public function bulkMessages( array $messages, array $counts ): array {
+		$count = static fn( string $key ): int => (int) ( $counts[ $key ] ?? 0 );
+
+		$messages[ ID::POST_TYPE ] = array(
+			/* translators: %s: number of events. */
+			'updated'   => _n( '%s event updated.', '%s events updated.', $count( 'updated' ), 'favr-events' ),
+			/* translators: %s: number of events. */
+			'locked'    => _n( '%s event not updated, somebody is editing it.', '%s events not updated, somebody is editing them.', $count( 'locked' ), 'favr-events' ),
+			/* translators: %s: number of events. */
+			'deleted'   => _n( '%s event permanently deleted.', '%s events permanently deleted.', $count( 'deleted' ), 'favr-events' ),
+			/* translators: %s: number of events. */
+			'trashed'   => _n( '%s event moved to the Trash.', '%s events moved to the Trash.', $count( 'trashed' ), 'favr-events' ),
+			/* translators: %s: number of events. */
+			'untrashed' => _n( '%s event restored from the Trash.', '%s events restored from the Trash.', $count( 'untrashed' ), 'favr-events' ),
+		);
+		return $messages;
 	}
 }
