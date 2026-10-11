@@ -16,7 +16,8 @@ Events and a community calendar for **Chambers of Commerce** and **associations*
   online or both), *Tickets & details* (cost, registration link, featured) and *Host*.
 - Repeats: weekly, every N weeks, monthly on a date, or monthly by position ("2nd Tuesday",
   "last Friday"), with an optional end date. Occurrences are calculated on the fly.
-- List with *When* and *Host* columns, sorted by date, with Upcoming and Past views.
+- List with *When* and *Host* columns, sorted by date (events that still need a date come
+  first), with Upcoming and Past views.
 - Settings: events page, event URL, default view, who may submit, notifications, accent color.
 
 **Visitors**

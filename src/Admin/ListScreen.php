@@ -13,10 +13,13 @@ use FavrEvents\Model\Event;
 use FavrEvents\Schema\Identifiers as ID;
 
 /**
- * Adds When and Host columns, sorts by date, filters upcoming/past, and words the list's
- * notices for events.
+ * Adds When and Host columns, sorts by date (events without a date first), filters
+ * upcoming/past, and words the list's notices for events.
  */
 final class ListScreen {
+
+	/** Query flag set on the list's own query: sort by event date, ASC or DESC. */
+	private const BY_DATE = 'favr_events_by_date';
 
 	/** Hook. */
 	public function hook(): void {
@@ -24,6 +27,7 @@ final class ListScreen {
 		add_action( 'manage_' . ID::POST_TYPE . '_posts_custom_column', array( $this, 'column' ), 10, 2 );
 		add_filter( 'manage_edit-' . ID::POST_TYPE . '_sortable_columns', array( $this, 'sortable' ) );
 		add_action( 'pre_get_posts', array( $this, 'query' ) );
+		add_filter( 'posts_clauses', array( $this, 'clauses' ), 10, 2 );
 		add_filter( 'views_edit-' . ID::POST_TYPE, array( $this, 'views' ) );
 		add_filter( 'bulk_post_updated_messages', array( $this, 'bulkMessages' ), 10, 2 );
 	}
@@ -91,7 +95,7 @@ final class ListScreen {
 	}
 
 	/**
-	 * Default: upcoming first; ?favr_when=past for past events.
+	 * Default: in date order, soonest first; ?favr_when=upcoming|past narrows the list.
 	 *
 	 * @param \WP_Query $query Query.
 	 */
@@ -99,16 +103,12 @@ final class ListScreen {
 		if ( ! is_admin() || ! $query->is_main_query() || ID::POST_TYPE !== $query->get( 'post_type' ) ) {
 			return;
 		}
-		$orderby = (string) $query->get( 'orderby' );
-		if ( '' === $orderby || 'favr_when' === $orderby ) {
-			$query->set( 'meta_key', ID::META_FIRST );
-			$query->set( 'orderby', 'meta_value_num' );
-			if ( '' === $orderby ) {
-				$query->set( 'order', 'ASC' );
-			}
-		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- list filter.
-		$when = isset( $_GET['favr_when'] ) ? sanitize_key( wp_unslash( $_GET['favr_when'] ) ) : '';
+		$when      = isset( $_GET['favr_when'] ) ? sanitize_key( wp_unslash( $_GET['favr_when'] ) ) : '';
+		$direction = self::dateOrder( (string) $query->get( 'orderby' ), (string) $query->get( 'order' ), $when );
+		if ( '' !== $direction ) {
+			$query->set( self::BY_DATE, $direction );
+		}
 		if ( in_array( $when, array( 'upcoming', 'past' ), true ) ) {
 			$query->set(
 				'meta_query',
@@ -125,6 +125,58 @@ final class ListScreen {
 				$query->set( 'order', 'DESC' );
 			}
 		}
+	}
+
+	/**
+	 * Direction of the date sort, or '' when the list is sorted by another column. Past events
+	 * always start with the most recent.
+	 *
+	 * @param string $orderby Requested column ('' = none, 'favr_when' = the When column).
+	 * @param string $order   Requested direction.
+	 * @param string $when    The upcoming/past view, or ''.
+	 */
+	public static function dateOrder( string $orderby, string $order, string $when ): string {
+		if ( '' !== $orderby && 'favr_when' !== $orderby ) {
+			return '';
+		}
+		if ( 'past' === $when ) {
+			return 'DESC';
+		}
+		return 'favr_when' === $orderby && 'DESC' === strtoupper( $order ) ? 'DESC' : 'ASC';
+	}
+
+	/**
+	 * Apply the date sort to the list's query.
+	 *
+	 * @param array<string, string> $clauses Query clauses.
+	 * @param \WP_Query             $query   Query.
+	 * @return array<string, string>
+	 */
+	public function clauses( array $clauses, \WP_Query $query ): array {
+		$direction = (string) $query->get( self::BY_DATE );
+		if ( ! in_array( $direction, array( 'ASC', 'DESC' ), true ) ) {
+			return $clauses;
+		}
+		global $wpdb;
+		return self::dateClauses( $clauses, $wpdb->posts, $wpdb->postmeta, $direction );
+	}
+
+	/**
+	 * Sort by the first start (the date index) without losing events that have no date yet.
+	 * A meta_key sort would leave those out, so a draft saved without a date was counted in
+	 * "All" but missing from the rows. They are listed first: they still need a date.
+	 *
+	 * @param array<string, string> $clauses   Query clauses.
+	 * @param string                $posts     Posts table.
+	 * @param string                $postmeta  Post meta table.
+	 * @param string                $direction ASC or DESC.
+	 * @return array<string, string>
+	 */
+	public static function dateClauses( array $clauses, string $posts, string $postmeta, string $direction ): array {
+		$direction          = 'DESC' === $direction ? 'DESC' : 'ASC';
+		$clauses['join']    = ( $clauses['join'] ?? '' ) . " LEFT JOIN {$postmeta} AS favr_ev_first ON ( favr_ev_first.post_id = {$posts}.ID AND favr_ev_first.meta_key = '" . ID::META_FIRST . "' )";
+		$clauses['orderby'] = "( favr_ev_first.meta_value IS NULL ) DESC, CAST( favr_ev_first.meta_value AS SIGNED ) {$direction}, {$posts}.ID DESC";
+		return $clauses;
 	}
 
 	/**

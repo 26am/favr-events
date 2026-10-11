@@ -27,6 +27,7 @@ Events and a community calendar for Chambers of Commerce and associations, with 
 * Wording: sentence case throughout wp-admin ("All events", "Add event", "Event categories", "Add category"), "Event name" as the title prompt, and "event" instead of "post" in list notices and the media window.
 * Dashboard card dates read month first ("Fri, Oct 16").
 * Fix: "sortable is not a function" script error on the events list, the categories screen and Event settings.
+* Fix: events without a start date were counted but not shown in the events list; they are now listed first, marked "No date".
 
 = 1.1.0 =
 * Events card (dates in the next 30 days) and "Add event" button on the Favr dashboard (Favr Sites plugin).
